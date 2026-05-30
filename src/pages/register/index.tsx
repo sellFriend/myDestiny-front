@@ -86,7 +86,7 @@ const RegisterPage = () => {
             className="flex items-center gap-2 text-sm text-black/40 hover:text-black transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            madam
+            My Destiny
           </Link>
         )}
 

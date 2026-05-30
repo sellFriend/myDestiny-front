@@ -20,7 +20,7 @@ const LoginPage = () => {
     <div className="min-h-screen bg-white flex flex-col">
       <header className="flex items-center px-5 py-3.5 border-b border-black/5">
         <Link to={ROUTES.HOME} className="text-base font-black tracking-tight text-black">
-          madam
+          My Destiny
         </Link>
       </header>
 
