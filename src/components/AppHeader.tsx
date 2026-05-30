@@ -60,7 +60,7 @@ export function AppHeader({ pendingRequestCount = 0, variant = 'app' }: AppHeade
     <>
       <header className={headerClass}>
         <Link to={ROUTES.HOME} className="text-base font-black tracking-tight text-black shrink-0">
-          madam
+          My Destiny
         </Link>
 
         {isLoggedIn && (

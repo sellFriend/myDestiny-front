@@ -41,8 +41,8 @@ const HomePage = () => {
 
       <footer className="px-6 py-8 border-t border-black/10 bg-white">
         <div className="max-w-5xl mx-auto flex items-center justify-between text-sm text-black/40">
-          <span className="font-black tracking-tight">madam</span>
-          <span>© 2026 Madam. All rights reserved.</span>
+          <span className="font-black tracking-tight">My Destiny</span>
+          <span>© 2026 SellFriend. All rights reserved.</span>
         </div>
       </footer>
 
