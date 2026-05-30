@@ -1,5 +1,3 @@
-import { Trash2 } from 'lucide-react';
-
 export interface Friend {
   id: string;
   name: string;
@@ -11,6 +9,7 @@ export interface Friend {
   mbti: string;
   intro: string;
   hobbies: string[];
+  photo?: string;
   cardColor: string;
   requestCount: number;
   status: 'pending' | 'approved';
@@ -18,56 +17,87 @@ export interface Friend {
 
 interface FriendCardProps {
   friend: Friend;
-  onDelete: (id: string) => void;
+  onClick: (friend: Friend) => void;
 }
 
-export function FriendCard({ friend, onDelete }: FriendCardProps) {
+const PHOTO_GRADIENTS: Record<string, string> = {
+  'bg-pastel-lime': 'from-[#a8d900]/60 to-[#a8d900]/30',
+  'bg-pastel-lilac': 'from-[#8b76e8]/60 to-[#8b76e8]/30',
+  'bg-pastel-mint': 'from-[#5ed9a8]/60 to-[#5ed9a8]/30',
+  'bg-pastel-coral': 'from-[#e05a4a]/60 to-[#e05a4a]/30',
+  'bg-pastel-cream': 'from-[#e8c84a]/60 to-[#e8c84a]/30',
+  'bg-pastel-pink': 'from-[#e87aab]/60 to-[#e87aab]/30',
+};
+
+export function FriendCard({ friend, onClick }: FriendCardProps) {
+  const gradient = PHOTO_GRADIENTS[friend.cardColor] ?? 'from-black/20 to-black/5';
+
   const occupationLine = friend.isStudent
     ? `${friend.school} · ${friend.major}`
     : friend.occupation;
 
   return (
-    <div className={`${friend.cardColor} rounded-block p-5 relative`}>
-      {friend.requestCount > 0 && (
-        <div className="absolute top-4 right-4 min-w-[20px] h-5 px-1.5 rounded-full bg-black flex items-center justify-center">
-          <span className="text-white text-[10px] font-bold">{friend.requestCount}</span>
-        </div>
-      )}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onClick(friend)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick(friend);
+        }
+      }}
+      className={`${friend.cardColor} rounded-block overflow-hidden relative cursor-pointer transition-transform duration-200 hover:-translate-y-1`}
+    >
+      {/* Photo area */}
+      <div className={`relative h-60 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+        {friend.photo ? (
+          <img
+            src={friend.photo}
+            alt={friend.name}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <span className="text-8xl font-black text-white/60 select-none">
+            {friend.name.charAt(0)}
+          </span>
+        )}
 
-      <div className="flex items-center gap-1 mb-3">
         <span
-          className={`text-[10px] font-semibold px-2 py-0.5 rounded-pill ${
+          className={`absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-pill ${
             friend.status === 'approved'
               ? 'bg-black text-white'
-              : 'bg-black/10 text-black/50'
+              : 'bg-white/85 text-black/60'
           }`}
         >
           {friend.status === 'approved' ? '등록됨' : '승인 대기'}
         </span>
+
+        {friend.requestCount > 0 && (
+          <div className="absolute top-3 right-3 min-w-[20px] h-5 px-1.5 rounded-full bg-black flex items-center justify-center">
+            <span className="text-white text-[10px] font-bold">{friend.requestCount}</span>
+          </div>
+        )}
       </div>
 
-      <p className="text-xs font-mono text-black/40 mb-1">{occupationLine} · {friend.mbti}</p>
-      <h3 className="text-xl font-black text-black mb-2">
-        {friend.name}, {friend.age}
-      </h3>
-      <p className="text-sm text-black/60 leading-relaxed line-clamp-2 mb-3">{friend.intro}</p>
+      {/* Info area */}
+      <div className="px-5 pt-3 pb-4">
+        <p className="text-xs font-mono uppercase tracking-wide text-black/40 mb-1">
+          {occupationLine} · {friend.mbti}
+        </p>
+        <h3 className="text-xl font-black text-black mb-2">
+          {friend.name}, {friend.age}
+        </h3>
+        <p className="text-sm text-black/60 leading-relaxed line-clamp-2 mb-3">{friend.intro}</p>
 
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {friend.hobbies.slice(0, 3).map((tag) => (
-          <span key={tag} className="px-2.5 py-1 bg-black/10 text-black/60 text-xs rounded-pill">
-            {tag}
-          </span>
-        ))}
+        <div className="flex flex-wrap gap-1.5">
+          {friend.hobbies.slice(0, 3).map((tag) => (
+            <span key={tag} className="px-2.5 py-1 bg-black/10 text-black/60 text-xs rounded-pill">
+              {tag}
+            </span>
+          ))}
+        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={() => onDelete(friend.id)}
-        className="flex items-center gap-1.5 px-4 py-2 border border-black/10 text-black/50 text-xs font-medium rounded-pill hover:border-black/30 transition-colors"
-      >
-        <Trash2 className="w-3 h-3" />
-        삭제
-      </button>
     </div>
   );
 }

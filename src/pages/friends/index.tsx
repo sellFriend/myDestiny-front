@@ -4,6 +4,7 @@ import { UserPlus } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { AppHeader } from '@/components/AppHeader';
 import { FriendCard, type Friend } from '@/pages/friends/components/FriendCard';
+import { FriendDetailModal } from '@/pages/friends/components/FriendDetailModal';
 import { FriendInviteSheet } from '@/pages/friends/components/FriendInviteSheet';
 
 const INVITE_TITLE = '마담 친구 초대';
@@ -56,6 +57,7 @@ const MOCK_FRIENDS: Friend[] = [
     mbti: 'ISTJ',
     intro: '꼼꼼하고 성실한 사람. 주말엔 등산 즐겨요.',
     hobbies: ['등산', '요리', '자기계발'],
+    photo: 'https://i.pravatar.cc/400?img=12',
     cardColor: 'bg-pastel-lime',
     requestCount: 3,
     status: 'approved',
@@ -70,6 +72,7 @@ const MOCK_FRIENDS: Friend[] = [
     mbti: 'ESFJ',
     intro: '밝고 에너지 넘쳐요. 사람 만나는 걸 좋아합니다.',
     hobbies: ['여행', '카페', '친구만남'],
+    photo: 'https://i.pravatar.cc/400?img=45',
     cardColor: 'bg-pastel-pink',
     requestCount: 1,
     status: 'approved',
@@ -136,6 +139,7 @@ async function loadKakaoSdk() {
 const FriendsPage = () => {
   const location = useLocation();
   const [friends, setFriends] = useState<Friend[]>(MOCK_FRIENDS);
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [inviteLink, setInviteLink] = useState('');
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
   const [isKakaoReady, setIsKakaoReady] = useState(false);
@@ -345,7 +349,7 @@ const FriendsPage = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {friends.map((friend) => (
-              <FriendCard key={friend.id} friend={friend} onDelete={handleDelete} />
+              <FriendCard key={friend.id} friend={friend} onClick={setSelectedFriend} />
             ))}
           </div>
         )}
@@ -355,6 +359,14 @@ const FriendsPage = () => {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-black text-white text-sm font-medium rounded-xl shadow-lg max-w-xs text-center leading-relaxed">
           {toast}
         </div>
+      )}
+
+      {selectedFriend && (
+        <FriendDetailModal
+          friend={selectedFriend}
+          onClose={() => setSelectedFriend(null)}
+          onDelete={handleDelete}
+        />
       )}
 
       <FriendInviteSheet
