@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export interface Profile {
   id: string;
@@ -16,7 +16,16 @@ export interface Profile {
   cardColor: string;
 }
 
+export type FetchStatus = "loading" | "success" | "error";
+export type ErrorType = "timeout" | "network" | "server";
+
 const TUTORIAL_COOKIE = "madam_tutorial_seen";
+const FETCH_TIMEOUT_MS = 10_000;
+
+// 남은 카드가 이 수 이하가 되면 다음 배치를 백그라운드에서 붙여 넣음.
+// 유저가 카드 한 장당 0.3s씩 스와이프 한다고 가정할 때
+// threshold * 0.3s > API 응답시간이면 빈 화면이 생기지 않는다.
+const PREFETCH_THRESHOLD = 3;
 
 function hasTutorialBeenSeen(): boolean {
   try {
@@ -99,22 +108,109 @@ const MOCK_PROFILES: Profile[] = [
   },
 ];
 
+// 실제 API 연결 시 이 함수만 교체하면 된다.
+// TODO: Replace with real API call (e.g. GET /api/profiles?cursor=xxx)
+let _mockBatch = 0;
+async function fetchProfilesFromApi(): Promise<Profile[]> {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // 실제 API가 더 이상 데이터 없으면 [] 반환 → hasMore = false
+  // Mock은 무한 배치를 시뮬레이션하기 위해 배치마다 고유 id를 붙인다.
+  _mockBatch++;
+  return MOCK_PROFILES.map((p) => ({ ...p, id: `${_mockBatch}-${p.id}` }));
+}
+
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("timeout")), ms),
+  );
+  return Promise.race([promise, timeout]);
+}
+
+function toErrorType(err: unknown): ErrorType {
+  const msg = err instanceof Error ? err.message : "";
+  if (msg === "timeout") return "timeout";
+  if (msg === "server") return "server";
+  return "network";
+}
+
 export function useSwipeCards() {
-  const [profiles, setProfiles] = useState<Profile[]>(MOCK_PROFILES);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [status, setStatus] = useState<FetchStatus>("loading");
+  const [errorType, setErrorType] = useState<ErrorType | null>(null);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [showTutorial, setShowTutorial] = useState(
     () => !hasTutorialBeenSeen(),
   );
 
-  const swipeProfile = (profileId: string) => {
-    setProfiles((prev) => {
-      if (prev[0]?.id !== profileId) {
-        return prev;
-      }
+  // 동시에 여러 번 프리패치가 실행되지 않도록 방지
+  const isFetchingNextRef = useRef(false);
 
+  // 다음 배치를 현재 스택 뒤에 조용히 붙여 넣는다.
+  // profiles 가 0 에 닿을 일이 없어 빈 화면 / 깜빡임이 발생하지 않는다.
+  const appendNextBatch = useCallback(async () => {
+    if (isFetchingNextRef.current) return;
+    isFetchingNextRef.current = true;
+    try {
+      const data = await withTimeout(fetchProfilesFromApi(), FETCH_TIMEOUT_MS);
+      if (data.length === 0) {
+        setHasMore(false);
+        return;
+      }
+      setProfiles((prev) => [...prev, ...data]);
+    } catch {
+      // 프리패치 실패는 조용히 넘긴다.
+      // profiles 가 바닥났을 때 아래 엣지 케이스 effect 가 처리한다.
+    } finally {
+      isFetchingNextRef.current = false;
+    }
+  }, []);
+
+  // 초기(또는 retry) 로드
+  const loadProfiles = useCallback(async () => {
+    isFetchingNextRef.current = false;
+    setHasMore(true);
+    setStatus("loading");
+    setErrorType(null);
+    try {
+      const data = await withTimeout(fetchProfilesFromApi(), FETCH_TIMEOUT_MS);
+      if (data.length === 0) setHasMore(false);
+      setProfiles(data);
+      setStatus("success");
+    } catch (err) {
+      setErrorType(toErrorType(err));
+      setStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfiles();
+  }, [loadProfiles]);
+
+  // 남은 카드가 threshold 이하가 되면 다음 배치 append 시작
+  useEffect(() => {
+    if (
+      status === "success" &&
+      hasMore &&
+      profiles.length > 0 &&
+      profiles.length <= PREFETCH_THRESHOLD
+    ) {
+      appendNextBatch();
+    }
+  }, [profiles.length, status, hasMore, appendNextBatch]);
+
+  // 엣지 케이스: 프리패치 실패 등으로 profiles 가 0 에 도달한 경우
+  useEffect(() => {
+    if (profiles.length > 0 || status !== "success" || showTutorial || !hasMore) return;
+    loadProfiles();
+  }, [profiles.length, status, showTutorial, hasMore, loadProfiles]);
+
+  const swipeProfile = useCallback((profileId: string) => {
+    setProfiles((prev) => {
+      if (prev[0]?.id !== profileId) return prev;
       return prev.slice(1);
     });
-  };
+  }, []);
 
   const swipeTutorial = () => {
     markTutorialSeen();
@@ -126,11 +222,15 @@ export function useSwipeCards() {
 
   return {
     profiles,
+    hasMore,
+    status,
+    errorType,
     selectedProfile,
     showTutorial,
     swipeProfile,
     swipeTutorial,
     openDetail,
     closeDetail,
+    refetch: loadProfiles,
   };
 }

@@ -9,8 +9,19 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const ExplorePage = () => {
   const { isLoggedIn } = useAuth();
-  const { profiles, selectedProfile, showTutorial, swipeProfile, swipeTutorial, openDetail, closeDetail } =
-    useSwipeCards();
+  const {
+    profiles,
+    hasMore,
+    status,
+    errorType,
+    selectedProfile,
+    showTutorial,
+    swipeProfile,
+    swipeTutorial,
+    openDetail,
+    closeDetail,
+    refetch,
+  } = useSwipeCards();
 
   const [requestProfile, setRequestProfile] = useState<Profile | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -36,10 +47,14 @@ const ExplorePage = () => {
         <div className="relative w-full max-w-[400px] h-[70vh] min-h-[480px] max-h-[660px]">
           <SwipeCardStack
             profiles={profiles}
+            hasMore={hasMore}
+            status={status}
+            errorType={errorType}
             showTutorial={showTutorial}
             onSwipeProfile={swipeProfile}
             onSwipeTutorial={swipeTutorial}
             onOpenDetail={handleCardClick}
+            onRetry={refetch}
           />
         </div>
       </main>
