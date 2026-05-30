@@ -13,8 +13,8 @@ export function CTASection({ onRegisterFriend }: CTASectionProps) {
           소개할 준비가 됐다면<br />지금 시작하세요
         </h2>
         <p className="text-white/60 mb-10 leading-relaxed">
-          친구를 등록하는 것만으로 시작됩니다.
-          내 친구의 운명적 만남을 내가 만들어보세요.
+          좋은 인연은 좋은 소개에서 시작됩니다. <br />
+          새로운 만남의 시작을 만들어보세요.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button

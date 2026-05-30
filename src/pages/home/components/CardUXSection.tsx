@@ -7,15 +7,13 @@ export function CardUXSection() {
             Card UX
           </p>
           <h2 className="text-5xl font-black tracking-tighter mb-6 leading-tight">
-            삼성페이처럼<br />직관적으로
+            카드 한 장으로<br />새로운 인연 찾기
           </h2>
           <p className="text-white/60 leading-relaxed mb-8">
-            카드를 스와이프하며 친구의 프로필을 탐색하고,
-            마음에 드는 카드를 클릭해 상세 정보를 확인하세요.
-            복잡한 필터링 없이 직관적인 UX로 소개팅을 경험합니다.
+            긴 목록을 하나씩 확인할 필요 없이, 카드를 넘기며 새로운 인연을 쉽고 빠르게 찾아보세요.
           </p>
           <ul className="space-y-3 text-sm text-white/60">
-            {['좌우 스와이프로 프로필 탐색', '카드 클릭으로 상세 정보 확인', '원하는 친구와 연결 요청'].map((item) => (
+            {['스와이프로 새로운 인연 발견', '클릭으로 자세한 정보 확인', '간편하게 연결 요청하기'].map((item) => (
               <li key={item} className="flex items-center gap-3">
                 <span className="w-1.5 h-1.5 rounded-full bg-pastel-lime flex-shrink-0" />
                 {item}

@@ -1,20 +1,20 @@
 const STEPS = [
   {
     number: '01',
-    title: '친구를 등록한다',
-    description: '내가 소개하고 싶은 친구의 프로필을 대신 작성해 등록합니다.',
+    title: '프로필을 등록한다',
+    description: '소개하고 싶은 친구의 프로필을 작성합니다.',
     bg: 'bg-pastel-lime',
   },
   {
     number: '02',
     title: '카드를 탐색한다',
-    description: '다른 마담이 등록한 친구 카드를 스와이프하며 둘러봅니다.',
+    description: '다양한 프로필을 카드 형태로 둘러봅니다.',
     bg: 'bg-pastel-lilac',
   },
   {
     number: '03',
     title: '연결 요청을 보낸다',
-    description: '마음에 드는 카드를 발견하면 내 친구와의 연결을 요청합니다.',
+    description: '관심 있는 사람을 발견하면 연결을 요청합니다.',
     bg: 'bg-pastel-mint',
   },
 ] as const;
@@ -27,7 +27,7 @@ export function HowItWorksSection() {
           How it works
         </p>
         <h2 className="text-5xl font-black text-black tracking-tighter mb-16">
-          세 단계로 끝나는<br />지인 기반 소개팅
+          세 단계로 시작하는 새로운 만남
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

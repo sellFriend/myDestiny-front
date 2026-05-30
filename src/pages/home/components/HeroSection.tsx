@@ -11,17 +11,17 @@ export function HeroSection({ onRegisterFriend }: HeroSectionProps) {
       <div className="absolute top-0 right-0 w-[480px] h-[480px] bg-pastel-lime rounded-block opacity-70 translate-x-1/3 -translate-y-1/4 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[320px] h-[320px] bg-pastel-pink rounded-block opacity-60 -translate-x-1/4 translate-y-1/4 pointer-events-none" />
 
-      <div className="relative z-10 text-center max-w-3xl mx-auto">
+      <div className="relative z-10 text-center max-w-5xl mx-auto">
         <p className="text-sm font-mono uppercase tracking-widest text-black/40 mb-6">
           Acquaintance-based matching
         </p>
-        <h1 className="text-6xl md:text-8xl font-black text-black leading-none tracking-tighter mb-6">
-          운명적 만남,<br />
-          <span className="text-black">마담이 잇는다.</span>
+        <h1 className="text-5xl md:text-7xl font-black text-black leading-[0.95] tracking-tighter mb-8 ">
+          좋은 사람은,<br />
+          가까운 사람이 더 잘 아니까.
         </h1>
         <p className="text-lg text-black/60 mb-10 max-w-xl mx-auto leading-relaxed">
-          신뢰할 수 있는 지인 소개 기반의 매칭 플랫폼.
-          무작위 매칭이 아닌, 내가 아는 사람이 연결하는 진짜 소개팅.
+          신뢰할 수 있는 지인 소개 기반 매칭 플랫폼. <br />
+          친구가 대신 소개하고 연결해주는 새로운 만남.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
