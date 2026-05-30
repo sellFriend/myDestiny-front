@@ -3,9 +3,11 @@ import { useLocation } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { AppHeader } from '@/components/AppHeader';
+import { useAuth } from '@/contexts/AuthContext';
 import { FriendCard, type Friend } from '@/pages/friends/components/FriendCard';
 import { FriendDetailModal } from '@/pages/friends/components/FriendDetailModal';
 import { FriendInviteSheet } from '@/pages/friends/components/FriendInviteSheet';
+import { useFriends } from '@/pages/friends/hooks/useFriends';
 
 const INVITE_TITLE = '마담 친구 초대';
 const INVITE_TEXT = '링크를 눌러 내 친구로 연결해줘요.';
@@ -46,38 +48,6 @@ declare global {
     Kakao?: KakaoSdk;
   }
 }
-
-const MOCK_FRIENDS: Friend[] = [
-  {
-    id: 'f1',
-    name: '오민수',
-    age: 28,
-    isStudent: false,
-    occupation: '회계사',
-    mbti: 'ISTJ',
-    intro: '꼼꼼하고 성실한 사람. 주말엔 등산 즐겨요.',
-    hobbies: ['등산', '요리', '자기계발'],
-    photo: 'https://i.pravatar.cc/400?img=12',
-    cardColor: 'bg-pastel-lime',
-    requestCount: 3,
-    status: 'approved',
-  },
-  {
-    id: 'f2',
-    name: '정다은',
-    age: 25,
-    isStudent: true,
-    school: '고려대학교',
-    major: '간호학과',
-    mbti: 'ESFJ',
-    intro: '밝고 에너지 넘쳐요. 사람 만나는 걸 좋아합니다.',
-    hobbies: ['여행', '카페', '친구만남'],
-    photo: 'https://i.pravatar.cc/400?img=45',
-    cardColor: 'bg-pastel-pink',
-    requestCount: 1,
-    status: 'approved',
-  },
-];
 
 function createInviteToken() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -138,7 +108,8 @@ async function loadKakaoSdk() {
 
 const FriendsPage = () => {
   const location = useLocation();
-  const [friends, setFriends] = useState<Friend[]>(MOCK_FRIENDS);
+  const { isLoggedIn } = useAuth();
+  const { friends, isLoading, isError, refetch, deleteFriend } = useFriends(isLoggedIn);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [inviteLink, setInviteLink] = useState('');
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
@@ -310,7 +281,7 @@ const FriendsPage = () => {
   }, [copyInviteLink, inviteLink]);
 
   const handleDelete = (id: string) => {
-    setFriends((prev) => prev.filter((f) => f.id !== id));
+    deleteFriend(id);
   };
 
   return (
@@ -331,7 +302,30 @@ const FriendsPage = () => {
           </button>
         </div>
 
-        {friends.length === 0 ? (
+        {!isLoggedIn ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <p className="text-lg font-black text-black mb-2">로그인이 필요해요</p>
+            <p className="text-sm text-black/40 leading-relaxed">
+              내 친구를 관리하려면 먼저 로그인해 주세요
+            </p>
+          </div>
+        ) : isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="w-6 h-6 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <p className="text-lg font-black text-black mb-2">불러오지 못했어요</p>
+            <p className="text-sm text-black/40 mb-5">잠시 후 다시 시도해 주세요</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-pill hover:bg-black/80 transition-colors"
+            >
+              다시 시도
+            </button>
+          </div>
+        ) : friends.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
             <p className="text-lg font-black text-black mb-2">등록된 친구가 없어요</p>
             <p className="text-sm text-black/40 mb-6 leading-relaxed">
