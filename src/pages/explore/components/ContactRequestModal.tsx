@@ -17,22 +17,24 @@ export function ContactRequestModal({ profile, onClose }: ContactRequestModalPro
   const [message, setMessage] = useState('');
   const [isSent, setIsSent] = useState(false);
 
-  const handleSend = () => {
-    if (!selectedFriendId) return;
-    setIsSent(true);
-  };
+  const occupationLine = profile.isStudent
+    ? `${profile.school} · ${profile.major}`
+    : profile.occupation;
 
   if (isSent) {
     return (
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4"
+        onClick={onClose}
+      >
         <div
           className="w-full max-w-sm bg-white rounded-block p-8 text-center"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="text-4xl mb-4">🎉</div>
-          <p className="font-bold text-lg text-black mb-2">요청을 보냈어요!</p>
-          <p className="text-sm text-black/50 mb-6">
-            상대 마담이 승인하면 연락처가 공유돼요.
+          <p className="font-black text-lg text-black mb-2">요청을 보냈어요!</p>
+          <p className="text-sm text-black/50 mb-6 leading-relaxed">
+            상대 마담이 승인하면<br />서로의 연락처가 공유돼요.
           </p>
           <button
             type="button"
@@ -47,16 +49,19 @@ export function ContactRequestModal({ profile, onClose }: ContactRequestModalPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-sm bg-white rounded-block overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={`${profile.cardColor} p-6`}>
+        <div className={`${profile.cardColor} p-5`}>
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-mono uppercase tracking-widest text-black/40 mb-1">
-                {profile.occupation} · {profile.mbti}
+                {occupationLine} · {profile.mbti}
               </p>
               <h3 className="text-xl font-black text-black">
                 {profile.name}, {profile.age}
@@ -65,14 +70,6 @@ export function ContactRequestModal({ profile, onClose }: ContactRequestModalPro
             <button type="button" onClick={onClose} className="p-1">
               <X className="w-5 h-5 text-black/40" />
             </button>
-          </div>
-          <p className="text-sm text-black/60 mt-3 leading-relaxed">{profile.intro}</p>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {profile.tags.map((tag) => (
-              <span key={tag} className="px-3 py-1 bg-black/10 text-black/60 text-xs rounded-pill">
-                {tag}
-              </span>
-            ))}
           </div>
         </div>
 
@@ -108,7 +105,7 @@ export function ContactRequestModal({ profile, onClose }: ContactRequestModalPro
 
           <button
             type="button"
-            onClick={handleSend}
+            onClick={() => { if (selectedFriendId) setIsSent(true); }}
             disabled={!selectedFriendId}
             className="w-full flex items-center justify-center gap-2 py-3 bg-black text-white text-sm font-semibold rounded-pill hover:bg-black/80 disabled:opacity-30 transition-all"
           >

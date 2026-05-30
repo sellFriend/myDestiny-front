@@ -1,36 +1,69 @@
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { ROUTES } from '@/constants/routes';
-import { useSwipeCards } from '@/pages/explore/hooks/useSwipeCards';
+import { useState } from 'react';
+import { AppHeader } from '@/components/AppHeader';
+import { useSwipeCards, type Profile } from '@/pages/explore/hooks/useSwipeCards';
 import { SwipeCardStack } from '@/pages/explore/components/SwipeCardStack';
+import { DetailModal } from '@/pages/explore/components/DetailModal';
 import { ContactRequestModal } from '@/pages/explore/components/ContactRequestModal';
+import { LoginModal } from '@/components/LoginModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ExplorePage = () => {
-  const { profiles, selectedProfile, swipe, openDetail, closeDetail } = useSwipeCards();
+  const { isLoggedIn } = useAuth();
+  const { profiles, selectedProfile, showTutorial, swipeProfile, swipeTutorial, openDetail, closeDetail } =
+    useSwipeCards();
+
+  const [requestProfile, setRequestProfile] = useState<Profile | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const handleCardClick = (profile: Profile) => {
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
+      return;
+    }
+    openDetail(profile);
+  };
+
+  const handleContactRequest = (profile: Profile) => {
+    closeDetail();
+    setRequestProfile(profile);
+  };
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <header className="flex items-center justify-between px-6 py-4 border-b border-black/5">
-        <Link to={ROUTES.HOME} className="flex items-center gap-2 text-sm text-black/40 hover:text-black transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          madam
-        </Link>
-        <h1 className="text-sm font-bold text-black">탐색</h1>
-        <div className="w-16" />
-      </header>
+      <AppHeader />
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-8">
-        <div className="w-full max-w-sm h-[560px] flex flex-col">
+      <main className="flex-1 flex items-center justify-center px-4 py-4">
+        <div className="relative w-full max-w-[400px] h-[70vh] min-h-[480px] max-h-[660px]">
           <SwipeCardStack
             profiles={profiles}
-            onSwipe={swipe}
-            onOpenDetail={openDetail}
+            showTutorial={showTutorial}
+            onSwipeProfile={swipeProfile}
+            onSwipeTutorial={swipeTutorial}
+            onOpenDetail={handleCardClick}
           />
         </div>
       </main>
 
       {selectedProfile && (
-        <ContactRequestModal profile={selectedProfile} onClose={closeDetail} />
+        <DetailModal
+          profile={selectedProfile}
+          onClose={closeDetail}
+          onContactRequest={handleContactRequest}
+        />
+      )}
+
+      {requestProfile && (
+        <ContactRequestModal
+          profile={requestProfile}
+          onClose={() => setRequestProfile(null)}
+        />
+      )}
+
+      {showLoginModal && (
+        <LoginModal
+          message="카드 상세 보기와 연락 요청은 로그인 후 이용할 수 있어요."
+          onClose={() => setShowLoginModal(false)}
+        />
       )}
     </div>
   );
