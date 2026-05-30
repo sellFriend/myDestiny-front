@@ -1,26 +1,34 @@
 import { useState } from 'react';
 
 export interface RegisterFormData {
+  photoPreview: string;
   name: string;
   age: string;
-  photo: string;
+  isStudent: boolean | null;
+  school: string;
+  major: string;
   occupation: string;
   mbti: string;
-  interests: string[];
+  hobbies: string[];
   intro: string;
+  contact: string;
 }
 
 const INITIAL_FORM: RegisterFormData = {
+  photoPreview: '',
   name: '',
   age: '',
-  photo: '',
+  isStudent: null,
+  school: '',
+  major: '',
   occupation: '',
   mbti: '',
-  interests: [],
+  hobbies: [],
   intro: '',
+  contact: '',
 };
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 10;
 
 export function useRegisterForm() {
   const [step, setStep] = useState(1);
@@ -31,12 +39,12 @@ export function useRegisterForm() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const toggleInterest = (interest: string) => {
+  const toggleHobby = (hobby: string) => {
     setForm((prev) => ({
       ...prev,
-      interests: prev.interests.includes(interest)
-        ? prev.interests.filter((i) => i !== interest)
-        : [...prev.interests, interest],
+      hobbies: prev.hobbies.includes(hobby)
+        ? prev.hobbies.filter((h) => h !== hobby)
+        : [...prev.hobbies, hobby],
     }));
   };
 
@@ -62,7 +70,7 @@ export function useRegisterForm() {
     form,
     isCompleted,
     updateField,
-    toggleInterest,
+    toggleHobby,
     goNext,
     goPrev,
     submit,
