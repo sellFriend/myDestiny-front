@@ -1,45 +1,42 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
+import { useAuth } from '@/contexts/AuthContext';
+import { AppHeader } from '@/components/AppHeader';
+import { LoginModal } from '@/components/LoginModal';
 import { HeroSection } from '@/pages/home/components/HeroSection';
 import { HowItWorksSection } from '@/pages/home/components/HowItWorksSection';
 import { CardUXSection } from '@/pages/home/components/CardUXSection';
 import { TrustSection } from '@/pages/home/components/TrustSection';
 import { CTASection } from '@/pages/home/components/CTASection';
 
-const NAV_LINKS = [
-  { label: '탐색', to: ROUTES.EXPLORE },
-  { label: '내 친구', to: ROUTES.FRIENDS },
-  { label: '요청함', to: ROUTES.REQUESTS },
-] as const;
-
 const HomePage = () => {
+  const { isLoggedIn } = useAuth();
+  const navigate = useNavigate();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const goToFriendsAndAdd = () => {
+    navigate(ROUTES.FRIENDS, { state: { triggerAddFriend: true } });
+  };
+
+  const handleRegisterFriend = () => {
+    if (isLoggedIn) {
+      goToFriendsAndAdd();
+    } else {
+      setShowLoginModal(true);
+    }
+  };
+
   return (
     <div className="min-h-screen">
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-sm border-b border-black/5">
-        <Link to={ROUTES.HOME} className="text-base font-black tracking-tight text-black">
-          madam
-        </Link>
-        <nav className="hidden md:flex items-center gap-8">
-          {NAV_LINKS.map(({ label, to }) => (
-            <Link key={to} to={to} className="text-sm text-black/60 hover:text-black transition-colors">
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <Link
-          to={ROUTES.REGISTER}
-          className="px-5 py-2 bg-black text-white text-sm font-semibold rounded-pill hover:bg-black/80 transition-colors"
-        >
-          친구 등록
-        </Link>
-      </header>
+      <AppHeader variant="landing" />
 
       <main className="pt-16">
-        <HeroSection />
+        <HeroSection onRegisterFriend={handleRegisterFriend} />
         <HowItWorksSection />
         <CardUXSection />
         <TrustSection />
-        <CTASection />
+        <CTASection onRegisterFriend={handleRegisterFriend} />
       </main>
 
       <footer className="px-6 py-8 border-t border-black/10 bg-white">
@@ -48,6 +45,14 @@ const HomePage = () => {
           <span>© 2026 Madam. All rights reserved.</span>
         </div>
       </footer>
+
+      {showLoginModal && (
+        <LoginModal
+          message="친구를 등록하려면 로그인이 필요해요."
+          onClose={() => setShowLoginModal(false)}
+          onSuccess={goToFriendsAndAdd}
+        />
+      )}
     </div>
   );
 };

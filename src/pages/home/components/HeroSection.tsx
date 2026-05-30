@@ -1,7 +1,11 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 
-export function HeroSection() {
+interface HeroSectionProps {
+  onRegisterFriend: () => void;
+}
+
+export function HeroSection({ onRegisterFriend }: HeroSectionProps) {
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden bg-white">
       <div className="absolute top-0 right-0 w-[480px] h-[480px] bg-pastel-lime rounded-block opacity-70 translate-x-1/3 -translate-y-1/4 pointer-events-none" />
@@ -27,12 +31,13 @@ export function HeroSection() {
           >
             소개 둘러보기
           </Link>
-          <Link
-            to={ROUTES.REGISTER}
+          <button
+            type="button"
+            onClick={onRegisterFriend}
             className="px-8 py-4 bg-white text-black text-sm font-semibold rounded-pill border border-black hover:bg-black/5 transition-colors"
           >
             친구 등록하기
-          </Link>
+          </button>
         </div>
       </div>
 
