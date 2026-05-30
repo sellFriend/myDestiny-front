@@ -3,6 +3,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 
 const HomePage = lazy(() => import('@/pages/home'));
+const LoginPage = lazy(() => import('@/pages/login'));
 const ExplorePage = lazy(() => import('@/pages/explore'));
 const FriendsPage = lazy(() => import('@/pages/friends'));
 const RequestsPage = lazy(() => import('@/pages/requests'));
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
   {
     path: ROUTES.HOME,
     element: withSuspense(<HomePage />),
+  },
+  {
+    path: ROUTES.LOGIN,
+    element: withSuspense(<LoginPage />),
   },
   {
     path: ROUTES.EXPLORE,
