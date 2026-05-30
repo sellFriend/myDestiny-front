@@ -68,6 +68,20 @@ function createSmsUrl(inviteLink: string) {
   return `sms:${separator}body=${body}`;
 }
 
+async function writeClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** 앱(모바일) 화면이면 true. AppHeader와 동일하게 md(768px) 경계를 사용한다. */
+function isAppViewport() {
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+}
+
 async function loadKakaoSdk() {
   if (window.Kakao) {
     return window.Kakao;
@@ -112,6 +126,7 @@ const FriendsPage = () => {
   const { friends, isLoading, isError, refetch, deleteFriend } = useFriends(isLoggedIn);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [inviteLink, setInviteLink] = useState('');
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
   const [isKakaoReady, setIsKakaoReady] = useState(false);
   const [toast, setToast] = useState('');
@@ -131,10 +146,28 @@ const FriendsPage = () => {
     }, duration);
   }, []);
 
-  const handleAddFriend = useCallback(() => {
-    setInviteLink(createInviteLink());
-    setIsInviteSheetOpen(true);
-  }, []);
+  const handleAddFriend = useCallback(async () => {
+    const link = createInviteLink();
+    setInviteLink(link);
+
+    // 웹/앱 모두 클립보드에 먼저 복사한다.
+    const copied = await writeClipboard(link);
+    setIsLinkCopied(copied);
+
+    if (isAppViewport()) {
+      // 앱: 화면 가로를 꽉 채우는 바텀 시트로 공유 채널을 보여준다.
+      setIsInviteSheetOpen(true);
+      return;
+    }
+
+    // 웹: 시트 없이 토스트로만 복사 완료를 알린다.
+    showToast(
+      copied
+        ? '초대 링크를 복사했어요. 친구에게 붙여넣어 보내주세요'
+        : `링크를 직접 복사해 주세요: ${link}`,
+      copied ? 3500 : 5000,
+    );
+  }, [showToast]);
 
   useEffect(() => {
     if (location.state?.triggerAddFriend) {
@@ -180,15 +213,17 @@ const FriendsPage = () => {
     void ensureKakaoReady();
   }, [ensureKakaoReady, isInviteSheetOpen, kakaoKey]);
 
-  const copyInviteLink = useCallback(async (message = '초대 링크를 복사했어요.') => {
+  const copyInviteLink = useCallback(async (message = '초대 링크를 복사했어요') => {
     if (!inviteLink) {
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(inviteLink);
+    const copied = await writeClipboard(inviteLink);
+    setIsLinkCopied(copied);
+
+    if (copied) {
       showToast(message);
-    } catch {
+    } else {
       showToast(`링크를 직접 복사해 주세요: ${inviteLink}`, 5000);
     }
   }, [inviteLink, showToast]);
@@ -205,12 +240,12 @@ const FriendsPage = () => {
     };
 
     if (typeof navigator.share !== 'function') {
-      await copyInviteLink(fallbackMessage ?? '기기 공유를 지원하지 않아 링크를 복사했어요.');
+      await copyInviteLink(fallbackMessage ?? '기기 공유를 지원하지 않아 링크를 복사했어요');
       return;
     }
 
     if (typeof navigator.canShare === 'function' && !navigator.canShare(shareData)) {
-      await copyInviteLink(fallbackMessage ?? '이 기기에서는 공유할 수 없어 링크를 복사했어요.');
+      await copyInviteLink(fallbackMessage ?? '이 기기에서는 공유할 수 없어 링크를 복사했어요');
       return;
     }
 
@@ -221,7 +256,7 @@ const FriendsPage = () => {
         return;
       }
 
-      await copyInviteLink(fallbackMessage ?? '공유 창을 열지 못해 링크를 복사했어요.');
+      await copyInviteLink(fallbackMessage ?? '공유 창을 열지 못해 링크를 복사했어요');
     }
   }, [copyInviteLink, inviteLink]);
 
@@ -233,7 +268,7 @@ const FriendsPage = () => {
     const Kakao = await ensureKakaoReady();
 
     if (!Kakao?.Share) {
-      await shareWithSystemSheet('카카오 공유 설정이 없어 링크를 복사했어요.');
+      await shareWithSystemSheet('카카오 공유 설정이 없어 링크를 복사했어요');
       return;
     }
 
@@ -259,12 +294,12 @@ const FriendsPage = () => {
         ],
       });
     } catch {
-      await shareWithSystemSheet('카카오 공유를 열지 못해 링크를 복사했어요.');
+      await shareWithSystemSheet('카카오 공유를 열지 못해 링크를 복사했어요');
     }
   }, [ensureKakaoReady, inviteLink, shareWithSystemSheet]);
 
   const handleInstagramShare = useCallback(async () => {
-    await shareWithSystemSheet('인스타그램 공유를 열지 못해 링크를 복사했어요.');
+    await shareWithSystemSheet('인스타그램 공유를 열지 못해 링크를 복사했어요');
   }, [shareWithSystemSheet]);
 
   const handleSmsShare = useCallback(async () => {
@@ -365,6 +400,7 @@ const FriendsPage = () => {
 
       <FriendInviteSheet
         inviteLink={inviteLink}
+        isCopied={isLinkCopied}
         isKakaoReady={isKakaoReady}
         isOpen={isInviteSheetOpen}
         onClose={() => setIsInviteSheetOpen(false)}
