@@ -29,8 +29,19 @@ const PHOTO_GRADIENTS: Record<string, string> = {
   'bg-pastel-pink': 'from-[#e87aab]/60 to-[#e87aab]/30',
 };
 
+// 정보 영역에 깔리는 옅은 파스텔 틴트 (친구별 색 정체성을 포인트로만 유지)
+const BODY_TINTS: Record<string, string> = {
+  'bg-pastel-lime': 'bg-[#ceff6e]/20',
+  'bg-pastel-lilac': 'bg-[#c5b8ff]/20',
+  'bg-pastel-mint': 'bg-[#b8ffe5]/25',
+  'bg-pastel-coral': 'bg-[#ff8b7b]/15',
+  'bg-pastel-cream': 'bg-[#fff6d3]/35',
+  'bg-pastel-pink': 'bg-[#ffb8d0]/20',
+};
+
 export function FriendCard({ friend, onClick }: FriendCardProps) {
   const gradient = PHOTO_GRADIENTS[friend.cardColor] ?? 'from-black/20 to-black/5';
+  const bodyTint = BODY_TINTS[friend.cardColor] ?? 'bg-black/[0.02]';
 
   const occupationLine = friend.isStudent
     ? `${friend.school} · ${friend.major}`
@@ -47,7 +58,7 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
           onClick(friend);
         }
       }}
-      className={`${friend.cardColor} rounded-block overflow-hidden relative cursor-pointer transition-transform duration-200 hover:-translate-y-1`}
+      className="bg-white border border-black/10 rounded-block overflow-hidden relative cursor-pointer transition-all duration-200 hover:-translate-y-1 hover:border-black/20"
     >
       {/* Photo area */}
       <div className={`relative h-60 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
@@ -81,7 +92,7 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
       </div>
 
       {/* Info area */}
-      <div className="px-5 pt-3 pb-4">
+      <div className={`${bodyTint} px-5 pt-3 pb-4`}>
         <p className="text-xs font-mono uppercase tracking-wide text-black/40 mb-1">
           {occupationLine} · {friend.mbti}
         </p>
