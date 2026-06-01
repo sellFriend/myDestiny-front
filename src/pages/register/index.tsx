@@ -103,6 +103,23 @@ const RegisterPage = () => {
   } = useRegisterForm();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [customHobbies, setCustomHobbies] = useState<string[]>([]);
+  const [showCustomHobbyInput, setShowCustomHobbyInput] = useState(false);
+  const [customHobbyInput, setCustomHobbyInput] = useState("");
+
+  const submitCustomHobby = () => {
+    const trimmed = customHobbyInput.trim();
+    setCustomHobbyInput("");
+    setShowCustomHobbyInput(false);
+    if (!trimmed) return;
+    // 이미 존재하는 태그면 추가하지 않고 선택만
+    if ([...HOBBY_OPTIONS, ...customHobbies].includes(trimmed)) {
+      if (!form.hobbies.includes(trimmed)) toggleHobby(trimmed);
+      return;
+    }
+    setCustomHobbies((prev) => [...prev, trimmed]);
+    toggleHobby(trimmed);
+  };
 
   // MBTI 4개 축의 현재 선택값 (E/I, N/S, T/F, J/P). 4개가 모두 채워지면 form.mbti 완성.
   const [mbtiAxes, setMbtiAxes] = useState<(string | null)[]>(() => {
@@ -448,6 +465,55 @@ const RegisterPage = () => {
                   {hobby}
                 </button>
               ))}
+              {customHobbies.map((hobby) => (
+                <button
+                  key={`custom-${hobby}`}
+                  type="button"
+                  onClick={() => toggleHobby(hobby)}
+                  className={`cursor-pointer px-5 py-3 text-sm font-medium rounded-pill border transition-all ${
+                    form.hobbies.includes(hobby)
+                      ? "bg-black text-white border-black"
+                      : "border-black/10 text-black/60 hover:border-black/30"
+                  }`}
+                >
+                  {hobby}
+                </button>
+              ))}
+              {showCustomHobbyInput ? (
+                <div className="flex items-center rounded-pill border border-black/30 focus-within:border-black transition-colors">
+                  <input
+                    type="text"
+                    autoFocus
+                    value={customHobbyInput}
+                    onChange={(e) => setCustomHobbyInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") submitCustomHobby();
+                      if (e.key === "Escape") {
+                        setCustomHobbyInput("");
+                        setShowCustomHobbyInput(false);
+                      }
+                    }}
+                    placeholder="직접 입력"
+                    className="pl-4 pr-1 py-3 text-sm font-medium outline-none bg-transparent w-24"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={submitCustomHobby}
+                    className="cursor-pointer pr-4 pl-2 py-3 text-sm font-semibold text-black/50 hover:text-black transition-colors"
+                  >
+                    추가
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowCustomHobbyInput(true)}
+                  className="cursor-pointer px-5 py-3 text-sm font-medium rounded-pill border border-dashed border-black/20 text-black/40 hover:border-black/40 hover:text-black/60 transition-all"
+                >
+                  기타 +
+                </button>
+              )}
             </div>
           </StepWrapper>
         )}
