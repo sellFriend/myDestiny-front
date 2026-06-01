@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
@@ -380,18 +381,33 @@ const FriendsPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {friends.map((friend) => (
-              <FriendCard key={friend.id} friend={friend} onClick={setSelectedFriend} />
+            {friends.map((friend, i) => (
+              <motion.div
+                key={friend.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: 'easeOut', delay: i * 0.08 }}
+              >
+                <FriendCard friend={friend} onClick={setSelectedFriend} />
+              </motion.div>
             ))}
           </div>
         )}
       </main>
 
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-black text-white text-sm font-medium rounded-xl shadow-lg max-w-xs text-center leading-relaxed">
-          {toast}
-        </div>
-      )}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-black text-white text-sm font-medium rounded-xl shadow-lg max-w-xs text-center leading-relaxed"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {selectedFriend && (
         <FriendDetailModal
