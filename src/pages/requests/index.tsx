@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Inbox } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
@@ -201,7 +202,17 @@ const RequestsPage = () => {
 
               {/* 콘텐츠 */}
               <section className="min-w-0 flex-1" role="tabpanel">
-                {renderContent()}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={tab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                  >
+                    {renderContent()}
+                  </motion.div>
+                </AnimatePresence>
               </section>
             </div>
           </>
