@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Inbox, Loader2 } from 'lucide-react';
+import { Inbox } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { AppHeader } from '@/components/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import type { MatchingResponse } from '@/lib/api';
 import { MatchingCard } from '@/pages/requests/components/MatchingCard';
+import { MatchingCardSkeleton } from '@/pages/requests/components/MatchingCardSkeleton';
 import { ContactModal } from '@/pages/requests/components/ContactModal';
 import { useMatchingActions, useMatchings } from '@/pages/requests/hooks/useMatchings';
 import type { RequestTab } from '@/pages/requests/utils';
@@ -45,8 +46,10 @@ const RequestsPage = () => {
   const renderContent = () => {
     if (activeQuery.isLoading) {
       return (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-black/30" />
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <MatchingCardSkeleton key={i} />
+          ))}
         </div>
       );
     }

@@ -12,18 +12,21 @@ export function useMatchings(activeTab: RequestTab, enabled: boolean) {
     queryKey: queryKeys.matchings.received,
     queryFn: matchingApi.received,
     enabled,
+    refetchInterval: 30_000,
   });
 
   const sent = useQuery({
     queryKey: queryKeys.matchings.sent,
     queryFn: matchingApi.sent,
     enabled: enabled && activeTab === 'sent',
+    refetchInterval: 30_000,
   });
 
   const matched = useQuery({
     queryKey: queryKeys.matchings.matched,
     queryFn: matchingApi.matched,
     enabled: enabled && activeTab === 'matched',
+    refetchInterval: 30_000,
   });
 
   const pendingReceivedCount =
