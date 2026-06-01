@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   Check,
@@ -76,6 +77,12 @@ const STEP_LABELS = [
   "미리보기",
 ];
 
+const stepVariants = {
+  enter: (dir: number) => ({ x: dir * 40, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir * -40, opacity: 0 }),
+};
+
 /** 숫자만 받아 휴대폰 형식(010-1234-5678)으로 표시용 변환 */
 function formatPhone(digits: string): string {
   const d = (digits ?? "").replace(/\D/g, "").slice(0, 11);
@@ -103,9 +110,13 @@ const RegisterPage = () => {
   } = useRegisterForm();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [direction, setDirection] = useState(1);
   const [customHobbies, setCustomHobbies] = useState<string[]>([]);
   const [showCustomHobbyInput, setShowCustomHobbyInput] = useState(false);
   const [customHobbyInput, setCustomHobbyInput] = useState("");
+
+  const handleNext = () => { setDirection(1); goNext(); };
+  const handlePrev = () => { setDirection(-1); goPrev(); };
 
   const submitCustomHobby = () => {
     const trimmed = customHobbyInput.trim();
@@ -142,19 +153,32 @@ const RegisterPage = () => {
   if (isCompleted) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
-        <div className="text-5xl mb-6">⏳</div>
-        <h2 className="text-3xl font-black text-black mb-3">제출 완료!</h2>
-        <p className="text-black/50 leading-relaxed mb-8">
-          마담의 승인을 기다리고 있어요.
-          <br />
-          승인되면 탐색 화면에 카드가 등록돼요.
-        </p>
-        <Link
-          to={ROUTES.HOME}
-          className="px-6 py-3 border border-black/10 text-black/60 text-sm font-semibold rounded-pill"
+        <motion.div
+          className="w-20 h-20 rounded-full bg-pastel-lime flex items-center justify-center mb-6"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
         >
-          홈으로 돌아가기
-        </Link>
+          <Check className="w-10 h-10 text-black" strokeWidth={3} />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
+        >
+          <h2 className="text-3xl font-black text-black mb-3">제출 완료!</h2>
+          <p className="text-black/50 leading-relaxed mb-8">
+            마담의 승인을 기다리고 있어요.
+            <br />
+            승인되면 탐색 화면에 카드가 등록돼요.
+          </p>
+          <Link
+            to={ROUTES.HOME}
+            className="px-6 py-3 border border-black/10 text-black/60 text-sm font-semibold rounded-pill"
+          >
+            홈으로 돌아가기
+          </Link>
+        </motion.div>
       </div>
     );
   }
@@ -202,23 +226,6 @@ const RegisterPage = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <header className="flex items-center justify-between px-5 py-4 border-b border-black/5">
-        {/* 헤더의 '이전'은 잠시 비활성화 — 단계 이동은 하단 '이전' 버튼 사용
-        {step > 1 ? (
-          <button
-            type="button"
-            onClick={goPrev}
-            className="flex items-center gap-2 text-sm text-black/40 hover:text-black transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            이전
-          </button>
-        ) : (
-          <Link to={ROUTES.HOME} className="flex items-center gap-2 text-sm text-black/40 hover:text-black transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            My Destiny
-          </Link>
-        )}
-        */}
         <Link
           to={ROUTES.HOME}
           className="flex items-center gap-2 text-sm text-black/40 hover:text-black transition-colors"
@@ -244,413 +251,419 @@ const RegisterPage = () => {
       </header>
 
       <main className="flex-1 flex flex-col px-6 py-10 max-w-lg mx-auto w-full">
-        <p className="text-xs font-mono uppercase tracking-widest text-black/30 mb-2">
-          Step {step} — {STEP_LABELS[step - 1]}
-        </p>
-
-        {/* Step 1: Photo */}
-        {step === 1 && (
-          <StepWrapper title="대표 사진을 올려주세요">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
-            <div
-              className="w-40 h-40 rounded-block overflow-hidden border-2 border-dashed border-black/15 flex flex-col items-center justify-center cursor-pointer hover:border-black/30 transition-colors bg-black/3"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {form.photoPreview ? (
-                <img
-                  src={form.photoPreview}
-                  alt="photo"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <>
-                  <Camera className="w-8 h-8 text-black/30 mb-2" />
-                  <span className="text-xs text-black/40">사진 선택</span>
-                </>
-              )}
-            </div>
-            <p className="text-sm text-black/30">
-              사진은 1장만 업로드할 수 있어요
+        <AnimatePresence mode="wait" custom={direction} initial={false}>
+          <motion.div
+            key={step}
+            className="flex-1 flex flex-col"
+            custom={direction}
+            variants={stepVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            <p className="text-xs font-mono uppercase tracking-widest text-black/30 mb-2">
+              Step {step} — {STEP_LABELS[step - 1]}
             </p>
-          </StepWrapper>
-        )}
 
-        {/* Step 2: Name */}
-        {step === 2 && (
-          <StepWrapper title="이름이 뭔가요?">
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => updateField("name", e.target.value)}
-              placeholder="예: 김지우"
-              className="w-full border-b-2 border-black/10 focus:border-black text-2xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
-              autoFocus
-            />
-          </StepWrapper>
-        )}
-
-        {/* Step 3: Age */}
-        {step === 3 && (
-          <StepWrapper title="나이가 어떻게 되나요?">
-            <input
-              type="number"
-              value={form.age}
-              onChange={(e) => updateField("age", e.target.value)}
-              placeholder="예: 27"
-              min={19}
-              max={45}
-              className="w-full border-b-2 border-black/10 focus:border-black text-2xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
-              autoFocus
-            />
-          </StepWrapper>
-        )}
-
-        {/* Step 4: Student Y/N */}
-        {step === 4 && (
-          <StepWrapper title="현재 학생인가요?">
-            <div className="flex gap-4">
-              {[
-                { label: "네, 학생이에요", value: true },
-                { label: "아니요", value: false },
-              ].map(({ label, value }) => (
-                <button
-                  key={String(value)}
-                  type="button"
-                  onClick={() => updateField("isStudent", value)}
-                  className={`flex-1 py-5 rounded-block text-sm font-semibold border-2 transition-all ${
-                    form.isStudent === value
-                      ? "bg-black text-white border-black"
-                      : "border-black/10 text-black/60 hover:border-black/30"
-                  }`}
+            {/* Step 1: Photo */}
+            {step === 1 && (
+              <StepWrapper title="대표 사진을 올려주세요">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoChange}
+                />
+                <div
+                  className="w-40 h-40 rounded-block overflow-hidden border-2 border-dashed border-black/15 flex flex-col items-center justify-center cursor-pointer hover:border-black/30 transition-colors bg-black/3"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </StepWrapper>
-        )}
-
-        {/* Step 5: School/Major or Occupation */}
-        {step === 5 && (
-          <>
-            {form.isStudent ? (
-              <StepWrapper title="학교와 학과를 알려주세요">
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    value={form.school}
-                    onChange={(e) => updateField("school", e.target.value)}
-                    placeholder="학교명 (예: 숭실대학교)"
-                    className="w-full border-b-2 border-black/10 focus:border-black text-xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
-                    autoFocus
-                  />
-                  <input
-                    type="text"
-                    value={form.major}
-                    onChange={(e) => updateField("major", e.target.value)}
-                    placeholder="학과명 (예: 컴퓨터학부)"
-                    className="w-full border-b-2 border-black/10 focus:border-black text-xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
-                  />
+                  {form.photoPreview ? (
+                    <img
+                      src={form.photoPreview}
+                      alt="photo"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <Camera className="w-8 h-8 text-black/30 mb-2" />
+                      <span className="text-xs text-black/40">사진 선택</span>
+                    </>
+                  )}
                 </div>
+                <p className="text-sm text-black/30">
+                  사진은 1장만 업로드할 수 있어요
+                </p>
               </StepWrapper>
-            ) : (
-              <StepWrapper title="어떤 일을 하고 있나요?">
+            )}
+
+            {/* Step 2: Name */}
+            {step === 2 && (
+              <StepWrapper title="이름이 뭔가요?">
                 <input
                   type="text"
-                  value={form.occupation}
-                  onChange={(e) => updateField("occupation", e.target.value)}
-                  placeholder="예: 디자이너"
+                  value={form.name}
+                  onChange={(e) => updateField("name", e.target.value)}
+                  placeholder="예: 김지우"
                   className="w-full border-b-2 border-black/10 focus:border-black text-2xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
                   autoFocus
                 />
               </StepWrapper>
             )}
-          </>
-        )}
 
-        {/* Step 6: MBTI */}
-        {step === 6 && (
-          <StepWrapper title="MBTI가 어떻게 되나요?">
-            <p className="-mt-2 text-sm text-black/40">
-              4가지만 고르면 완성돼요. 잘 몰라도 느낌대로 골라보세요.
-            </p>
-
-            {/* 실시간으로 조립되는 결과 */}
-            <div className="flex items-center justify-center gap-2">
-              {[0, 1, 2, 3].map((i) => (
-                <span
-                  key={i}
-                  className={`flex h-12 w-12 items-center justify-center rounded-xl text-lg font-black transition-colors ${
-                    mbtiAxes[i]
-                      ? "bg-black text-white"
-                      : "bg-black/5 text-black/20"
-                  }`}
-                >
-                  {mbtiAxes[i] ?? "·"}
-                </span>
-              ))}
-            </div>
-
-            <div className="space-y-4">
-              {MBTI_AXES.map((axis, index) => (
-                <div key={axis.title}>
-                  <p className="mb-2 text-xs font-semibold text-black/45">
-                    {axis.title}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {axis.options.map((opt) => {
-                      const selected = mbtiAxes[index] === opt.value;
-                      return (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => selectMbtiAxis(index, opt.value)}
-                          className={`flex flex-col items-center gap-0.5 rounded-xl border px-3 py-3 transition-all ${
-                            selected
-                              ? "border-black bg-black text-white"
-                              : "border-black/10 text-black/60 hover:border-black/30"
-                          }`}
-                        >
-                          <span className="text-sm font-bold">
-                            {opt.value} · {opt.label}
-                          </span>
-                          <span
-                            className={`text-[11px] leading-tight ${selected ? "text-white/70" : "text-black/35"}`}
-                          >
-                            {opt.desc}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </StepWrapper>
-        )}
-
-        {/* Step 7: Hobbies */}
-        {step === 7 && (
-          <StepWrapper title="어떤 걸 좋아하나요?">
-            <div className="-mt-2 flex items-center justify-between">
-              <p className="text-sm text-black/40">여러 개 골라도 좋아요.</p>
-              <span className="font-mono text-xs text-black/35">
-                {form.hobbies.length > 0 ? (
-                  <span className="font-semibold text-black">
-                    {form.hobbies.length}개 선택됨
-                  </span>
-                ) : (
-                  "최소 1개"
-                )}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {HOBBY_OPTIONS.map((hobby) => (
-                <button
-                  key={hobby}
-                  type="button"
-                  onClick={() => toggleHobby(hobby)}
-                  className={`cursor-pointer px-5 py-3 text-sm font-medium rounded-pill border transition-all ${
-                    form.hobbies.includes(hobby)
-                      ? "bg-black text-white border-black"
-                      : "border-black/10 text-black/60 hover:border-black/30"
-                  }`}
-                >
-                  {hobby}
-                </button>
-              ))}
-              {customHobbies.map((hobby) => (
-                <button
-                  key={`custom-${hobby}`}
-                  type="button"
-                  onClick={() => toggleHobby(hobby)}
-                  className={`cursor-pointer px-5 py-3 text-sm font-medium rounded-pill border transition-all ${
-                    form.hobbies.includes(hobby)
-                      ? "bg-black text-white border-black"
-                      : "border-black/10 text-black/60 hover:border-black/30"
-                  }`}
-                >
-                  {hobby}
-                </button>
-              ))}
-              {showCustomHobbyInput ? (
-                <div className="flex items-center rounded-pill border border-black/30 focus-within:border-black transition-colors">
-                  <input
-                    type="text"
-                    autoFocus
-                    value={customHobbyInput}
-                    onChange={(e) => setCustomHobbyInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") submitCustomHobby();
-                      if (e.key === "Escape") {
-                        setCustomHobbyInput("");
-                        setShowCustomHobbyInput(false);
-                      }
-                    }}
-                    placeholder="직접 입력"
-                    className="pl-4 pr-1 py-3 text-sm font-medium outline-none bg-transparent w-24"
-                  />
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={submitCustomHobby}
-                    className="cursor-pointer pr-4 pl-2 py-3 text-sm font-semibold text-black/50 hover:text-black transition-colors"
-                  >
-                    추가
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setShowCustomHobbyInput(true)}
-                  className="cursor-pointer px-5 py-3 text-sm font-medium rounded-pill border border-dashed border-black/20 text-black/40 hover:border-black/40 hover:text-black/60 transition-all"
-                >
-                  기타 +
-                </button>
-              )}
-            </div>
-          </StepWrapper>
-        )}
-
-        {/* Step 8: Intro */}
-        {step === 8 && (
-          <StepWrapper title="간단한 소개글을 써주세요">
-            <p className="-mt-2 text-sm text-black/40">
-              어떤 사람인지 한두 문장으로 편하게 적어주세요.
-            </p>
-            <div className="rounded-block border border-black/10 bg-black/[0.015] px-5 py-4 transition-colors focus-within:border-black/40">
-              <textarea
-                value={form.intro}
-                onChange={(e) => updateField("intro", e.target.value)}
-                placeholder="예: 여행과 사진을 좋아하는 자유로운 영혼이에요."
-                rows={5}
-                maxLength={300}
-                className="w-full resize-none bg-transparent text-lg leading-relaxed text-black outline-none placeholder:text-black/25"
-                autoFocus
-              />
-              <div className="mt-2 flex items-center justify-end border-t border-black/[0.06] pt-2.5">
-                <span className="font-mono text-xs tracking-wide text-black/35">
-                  {form.intro.length}
-                  <span className="text-black/20"> / 300</span>
-                </span>
-              </div>
-            </div>
-          </StepWrapper>
-        )}
-
-        {/* Step 9: Phone (필수 · 비공개) */}
-        {step === 9 && (
-          <StepWrapper title="전화번호를 입력해주세요">
-            <p className="-mt-2 text-sm leading-relaxed text-black/40">
-              전화번호는 중복 가입을 막기 위해서만 써요. 다른 사람에게는 절대
-              공개되지 않아요.
-            </p>
-            <input
-              type="tel"
-              inputMode="numeric"
-              value={formatPhone(form.phoneNumber)}
-              onChange={(e) =>
-                updateField(
-                  "phoneNumber",
-                  e.target.value.replace(/\D/g, "").slice(0, 11),
-                )
-              }
-              placeholder="010-0000-0000"
-              className="w-full border-b-2 border-black/10 focus:border-black text-2xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
-              autoFocus
-            />
-          </StepWrapper>
-        )}
-
-        {/* Step 10: Public contact (인스타/카카오 중 하나는 필수) */}
-        {step === 10 && (
-          <StepWrapper title="어떻게 연락하면 될까요?">
-            <p className="-mt-2 text-sm leading-relaxed text-black/40">
-              매칭이 성사되면 상대에게{" "}
-              <strong className="font-semibold text-black/60">
-                공개되는 연락처
-              </strong>
-              예요.
-              <br />둘 중 하나만 입력해도 충분해요.
-            </p>
-
-            <div className="space-y-1">
-              {/* 인스타그램 */}
-              <div className="flex items-center gap-3 border-b-2 border-black/10 py-3 transition-colors focus-within:border-black">
-                <Instagram className="h-5 w-5 shrink-0 text-black/40" />
+            {/* Step 3: Age */}
+            {step === 3 && (
+              <StepWrapper title="나이가 어떻게 되나요?">
                 <input
-                  type="text"
-                  value={form.instagramId ?? ""}
-                  onChange={(e) =>
-                    updateField(
-                      "instagramId",
-                      e.target.value.replace(/\s/g, ""),
-                    )
-                  }
-                  placeholder="인스타그램 ID"
-                  className="w-full bg-transparent text-lg font-bold text-black outline-none placeholder:text-black/20"
+                  type="number"
+                  value={form.age}
+                  onChange={(e) => updateField("age", e.target.value)}
+                  placeholder="예: 27"
+                  min={19}
+                  max={45}
+                  className="w-full border-b-2 border-black/10 focus:border-black text-2xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
                   autoFocus
                 />
-                {(form.instagramId ?? "").trim() && (
-                  <Check className="h-4 w-4 shrink-0 text-black" />
+              </StepWrapper>
+            )}
+
+            {/* Step 4: Student Y/N */}
+            {step === 4 && (
+              <StepWrapper title="현재 학생인가요?">
+                <div className="flex gap-4">
+                  {[
+                    { label: "네, 학생이에요", value: true },
+                    { label: "아니요", value: false },
+                  ].map(({ label, value }) => (
+                    <button
+                      key={String(value)}
+                      type="button"
+                      onClick={() => updateField("isStudent", value)}
+                      className={`flex-1 py-5 rounded-block text-sm font-semibold border-2 transition-all ${
+                        form.isStudent === value
+                          ? "bg-black text-white border-black"
+                          : "border-black/10 text-black/60 hover:border-black/30"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </StepWrapper>
+            )}
+
+            {/* Step 5: School/Major or Occupation */}
+            {step === 5 && (
+              <>
+                {form.isStudent ? (
+                  <StepWrapper title="학교와 학과를 알려주세요">
+                    <div className="space-y-4">
+                      <input
+                        type="text"
+                        value={form.school}
+                        onChange={(e) => updateField("school", e.target.value)}
+                        placeholder="학교명 (예: 숭실대학교)"
+                        className="w-full border-b-2 border-black/10 focus:border-black text-xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
+                        autoFocus
+                      />
+                      <input
+                        type="text"
+                        value={form.major}
+                        onChange={(e) => updateField("major", e.target.value)}
+                        placeholder="학과명 (예: 컴퓨터학부)"
+                        className="w-full border-b-2 border-black/10 focus:border-black text-xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
+                      />
+                    </div>
+                  </StepWrapper>
+                ) : (
+                  <StepWrapper title="어떤 일을 하고 있나요?">
+                    <input
+                      type="text"
+                      value={form.occupation}
+                      onChange={(e) => updateField("occupation", e.target.value)}
+                      placeholder="예: 디자이너"
+                      className="w-full border-b-2 border-black/10 focus:border-black text-2xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
+                      autoFocus
+                    />
+                  </StepWrapper>
                 )}
-              </div>
+              </>
+            )}
 
-              {/* 또는 */}
-              {/* <div className="flex items-center gap-3 py-1.5">
-                <span className="h-px flex-1 bg-black/8" />
-                <span className="font-mono text-[11px] uppercase tracking-widest text-black/30">또는</span>
-                <span className="h-px flex-1 bg-black/8" />
-              </div> */}
+            {/* Step 6: MBTI */}
+            {step === 6 && (
+              <StepWrapper title="MBTI가 어떻게 되나요?">
+                <p className="-mt-2 text-sm text-black/40">
+                  4가지만 고르면 완성돼요. 잘 몰라도 느낌대로 골라보세요.
+                </p>
 
-              {/* 카카오톡 */}
-              <div className="flex items-center gap-3 border-b-2 border-black/10 py-3 transition-colors focus-within:border-black">
-                <MessageCircle className="h-5 w-5 shrink-0 text-black/40" />
+                {/* 실시간으로 조립되는 결과 */}
+                <div className="flex items-center justify-center gap-2">
+                  {[0, 1, 2, 3].map((i) => (
+                    <span
+                      key={i}
+                      className={`flex h-12 w-12 items-center justify-center rounded-xl text-lg font-black transition-colors ${
+                        mbtiAxes[i]
+                          ? "bg-black text-white"
+                          : "bg-black/5 text-black/20"
+                      }`}
+                    >
+                      {mbtiAxes[i] ?? "·"}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="space-y-4">
+                  {MBTI_AXES.map((axis, index) => (
+                    <div key={axis.title}>
+                      <p className="mb-2 text-xs font-semibold text-black/45">
+                        {axis.title}
+                      </p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {axis.options.map((opt) => {
+                          const selected = mbtiAxes[index] === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => selectMbtiAxis(index, opt.value)}
+                              className={`flex flex-col items-center gap-0.5 rounded-xl border px-3 py-3 transition-all ${
+                                selected
+                                  ? "border-black bg-black text-white"
+                                  : "border-black/10 text-black/60 hover:border-black/30"
+                              }`}
+                            >
+                              <span className="text-sm font-bold">
+                                {opt.value} · {opt.label}
+                              </span>
+                              <span
+                                className={`text-[11px] leading-tight ${selected ? "text-white/70" : "text-black/35"}`}
+                              >
+                                {opt.desc}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </StepWrapper>
+            )}
+
+            {/* Step 7: Hobbies */}
+            {step === 7 && (
+              <StepWrapper title="어떤 걸 좋아하나요?">
+                <div className="-mt-2 flex items-center justify-between">
+                  <p className="text-sm text-black/40">여러 개 골라도 좋아요.</p>
+                  <span className="font-mono text-xs text-black/35">
+                    {form.hobbies.length > 0 ? (
+                      <span className="font-semibold text-black">
+                        {form.hobbies.length}개 선택됨
+                      </span>
+                    ) : (
+                      "최소 1개"
+                    )}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {HOBBY_OPTIONS.map((hobby) => (
+                    <button
+                      key={hobby}
+                      type="button"
+                      onClick={() => toggleHobby(hobby)}
+                      className={`cursor-pointer px-5 py-3 text-sm font-medium rounded-pill border transition-all ${
+                        form.hobbies.includes(hobby)
+                          ? "bg-black text-white border-black"
+                          : "border-black/10 text-black/60 hover:border-black/30"
+                      }`}
+                    >
+                      {hobby}
+                    </button>
+                  ))}
+                  {customHobbies.map((hobby) => (
+                    <button
+                      key={`custom-${hobby}`}
+                      type="button"
+                      onClick={() => toggleHobby(hobby)}
+                      className={`cursor-pointer px-5 py-3 text-sm font-medium rounded-pill border transition-all ${
+                        form.hobbies.includes(hobby)
+                          ? "bg-black text-white border-black"
+                          : "border-black/10 text-black/60 hover:border-black/30"
+                      }`}
+                    >
+                      {hobby}
+                    </button>
+                  ))}
+                  {showCustomHobbyInput ? (
+                    <div className="flex items-center rounded-pill border border-black/30 focus-within:border-black transition-colors">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={customHobbyInput}
+                        onChange={(e) => setCustomHobbyInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") submitCustomHobby();
+                          if (e.key === "Escape") {
+                            setCustomHobbyInput("");
+                            setShowCustomHobbyInput(false);
+                          }
+                        }}
+                        placeholder="직접 입력"
+                        className="pl-4 pr-1 py-3 text-sm font-medium outline-none bg-transparent w-24"
+                      />
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={submitCustomHobby}
+                        className="cursor-pointer pr-4 pl-2 py-3 text-sm font-semibold text-black/50 hover:text-black transition-colors"
+                      >
+                        추가
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomHobbyInput(true)}
+                      className="cursor-pointer px-5 py-3 text-sm font-medium rounded-pill border border-dashed border-black/20 text-black/40 hover:border-black/40 hover:text-black/60 transition-all"
+                    >
+                      기타 +
+                    </button>
+                  )}
+                </div>
+              </StepWrapper>
+            )}
+
+            {/* Step 8: Intro */}
+            {step === 8 && (
+              <StepWrapper title="간단한 소개글을 써주세요">
+                <p className="-mt-2 text-sm text-black/40">
+                  어떤 사람인지 한두 문장으로 편하게 적어주세요.
+                </p>
+                <div className="rounded-block border border-black/10 bg-black/[0.015] px-5 py-4 transition-colors focus-within:border-black/40">
+                  <textarea
+                    value={form.intro}
+                    onChange={(e) => updateField("intro", e.target.value)}
+                    placeholder="예: 여행과 사진을 좋아하는 자유로운 영혼이에요."
+                    rows={5}
+                    maxLength={300}
+                    className="w-full resize-none bg-transparent text-lg leading-relaxed text-black outline-none placeholder:text-black/25"
+                    autoFocus
+                  />
+                  <div className="mt-2 flex items-center justify-end border-t border-black/[0.06] pt-2.5">
+                    <span className="font-mono text-xs tracking-wide text-black/35">
+                      {form.intro.length}
+                      <span className="text-black/20"> / 300</span>
+                    </span>
+                  </div>
+                </div>
+              </StepWrapper>
+            )}
+
+            {/* Step 9: Phone (필수 · 비공개) */}
+            {step === 9 && (
+              <StepWrapper title="전화번호를 입력해주세요">
+                <p className="-mt-2 text-sm leading-relaxed text-black/40">
+                  전화번호는 중복 가입을 막기 위해서만 써요. 다른 사람에게는 절대
+                  공개되지 않아요.
+                </p>
                 <input
-                  type="text"
-                  value={form.kakaoId ?? ""}
+                  type="tel"
+                  inputMode="numeric"
+                  value={formatPhone(form.phoneNumber)}
                   onChange={(e) =>
-                    updateField("kakaoId", e.target.value.replace(/\s/g, ""))
+                    updateField(
+                      "phoneNumber",
+                      e.target.value.replace(/\D/g, "").slice(0, 11),
+                    )
                   }
-                  placeholder="카카오톡 ID"
-                  className="w-full bg-transparent text-lg font-bold text-black outline-none placeholder:text-black/20"
+                  placeholder="010-0000-0000"
+                  className="w-full border-b-2 border-black/10 focus:border-black text-2xl font-bold py-3 outline-none bg-transparent text-black placeholder:text-black/20 transition-colors"
+                  autoFocus
                 />
-                {(form.kakaoId ?? "").trim() && (
-                  <Check className="h-4 w-4 shrink-0 text-black" />
-                )}
-              </div>
-            </div>
-          </StepWrapper>
-        )}
+              </StepWrapper>
+            )}
 
-        {/* Step 11: Preview */}
-        {step === 11 && (
-          <div className="flex-1 flex flex-col gap-6">
-            <div>
-              <h2 className="text-3xl font-black text-black mb-1">
-                이렇게 등록될 거예요
-              </h2>
-              <p className="text-sm text-black/40">
-                카드 미리보기예요. 수정하려면 이전으로 돌아가세요.
-              </p>
-            </div>
-            <div className="max-w-sm mx-auto w-full">
-              <CardPreview form={form} />
-            </div>
-          </div>
-        )}
+            {/* Step 10: Public contact (인스타/카카오 중 하나는 필수) */}
+            {step === 10 && (
+              <StepWrapper title="어떻게 연락하면 될까요?">
+                <p className="-mt-2 text-sm leading-relaxed text-black/40">
+                  매칭이 성사되면 상대에게{" "}
+                  <strong className="font-semibold text-black/60">
+                    공개되는 연락처
+                  </strong>
+                  예요.
+                  <br />둘 중 하나만 입력해도 충분해요.
+                </p>
+
+                <div className="space-y-1">
+                  {/* 인스타그램 */}
+                  <div className="flex items-center gap-3 border-b-2 border-black/10 py-3 transition-colors focus-within:border-black">
+                    <Instagram className="h-5 w-5 shrink-0 text-black/40" />
+                    <input
+                      type="text"
+                      value={form.instagramId ?? ""}
+                      onChange={(e) =>
+                        updateField(
+                          "instagramId",
+                          e.target.value.replace(/\s/g, ""),
+                        )
+                      }
+                      placeholder="인스타그램 ID"
+                      className="w-full bg-transparent text-lg font-bold text-black outline-none placeholder:text-black/20"
+                      autoFocus
+                    />
+                    {(form.instagramId ?? "").trim() && (
+                      <Check className="h-4 w-4 shrink-0 text-black" />
+                    )}
+                  </div>
+
+                  {/* 카카오톡 */}
+                  <div className="flex items-center gap-3 border-b-2 border-black/10 py-3 transition-colors focus-within:border-black">
+                    <MessageCircle className="h-5 w-5 shrink-0 text-black/40" />
+                    <input
+                      type="text"
+                      value={form.kakaoId ?? ""}
+                      onChange={(e) =>
+                        updateField("kakaoId", e.target.value.replace(/\s/g, ""))
+                      }
+                      placeholder="카카오톡 ID"
+                      className="w-full bg-transparent text-lg font-bold text-black outline-none placeholder:text-black/20"
+                    />
+                    {(form.kakaoId ?? "").trim() && (
+                      <Check className="h-4 w-4 shrink-0 text-black" />
+                    )}
+                  </div>
+                </div>
+              </StepWrapper>
+            )}
+
+            {/* Step 11: Preview */}
+            {step === 11 && (
+              <div className="flex-1 flex flex-col gap-6">
+                <div>
+                  <h2 className="text-3xl font-black text-black mb-1">
+                    이렇게 등록될 거예요
+                  </h2>
+                  <p className="text-sm text-black/40">
+                    카드 미리보기예요. 수정하려면 이전으로 돌아가세요.
+                  </p>
+                </div>
+                <div className="max-w-sm mx-auto w-full">
+                  <CardPreview form={form} />
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
         <div className="mt-auto flex items-center gap-3 pt-8">
           {step > 1 && (
             <button
               type="button"
-              onClick={goPrev}
+              onClick={handlePrev}
               className="shrink-0 rounded-pill border border-black/15 px-5 py-4 text-sm font-semibold text-black/55 transition-colors hover:border-black/35 hover:text-black"
             >
               이전
@@ -660,7 +673,7 @@ const RegisterPage = () => {
           {step < totalSteps ? (
             <button
               type="button"
-              onClick={goNext}
+              onClick={handleNext}
               disabled={!canProceed}
               className="flex flex-1 items-center justify-center py-4 bg-black text-white text-sm font-semibold rounded-pill hover:bg-black/80 disabled:opacity-30 transition-all"
             >

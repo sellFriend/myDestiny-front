@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+
 const TRUST_POINTS = [
   {
     title: '아는 사람이 소개해요',
@@ -16,23 +18,44 @@ const TRUST_POINTS = [
   },
 ] as const;
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 32 },
+  visible: { opacity: 1, y: 0 },
+};
+
 export function TrustSection() {
   return (
     <section className="px-6 py-24 bg-white">
       <div className="max-w-5xl mx-auto">
-        <p className="text-sm font-mono uppercase tracking-widest text-black/40 mb-4">
-          Why MyDestiny
-        </p>
-        <h2 className="text-5xl font-black text-black tracking-tighter mb-16">
-          왜 더 믿을 수 있을까요?
-        </h2>
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          <p className="text-sm font-mono uppercase tracking-widest text-black/40 mb-4">
+            Why MyDestiny
+          </p>
+          <h2 className="text-5xl font-black text-black tracking-tighter mb-16">
+            왜 더 믿을 수 있을까요?
+          </h2>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TRUST_POINTS.map((point) => (
-            <div key={point.title} className={`${point.bg} rounded-block p-8`}>
+          {TRUST_POINTS.map((point, i) => (
+            <motion.div
+              key={point.title}
+              className={`${point.bg} rounded-block p-8`}
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.12 }}
+            >
               <h3 className="text-lg font-bold text-black mb-3">{point.title}</h3>
               <p className="text-sm text-black/60 leading-relaxed">{point.description}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

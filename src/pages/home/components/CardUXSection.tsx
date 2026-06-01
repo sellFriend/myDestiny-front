@@ -1,8 +1,16 @@
+import { motion } from 'framer-motion';
+
 export function CardUXSection() {
   return (
     <section className="px-6 py-24 bg-black text-white overflow-hidden">
       <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-16">
-        <div className="flex-1">
+        <motion.div
+          className="flex-1"
+          initial={{ opacity: 0, x: -40 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
           <p className="text-sm font-mono uppercase tracking-widest text-white/40 mb-4">
             Card UX
           </p>
@@ -20,9 +28,15 @@ export function CardUXSection() {
               </li>
             ))}
           </ul>
-        </div>
+        </motion.div>
 
-        <div className="flex-1 flex justify-center">
+        <motion.div
+          className="flex-1 flex justify-center"
+          initial={{ opacity: 0, x: 40 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.6, ease: 'easeOut', delay: 0.15 }}
+        >
           <div className="relative w-64 h-80">
             <div className="absolute inset-0 bg-pastel-coral rounded-block rotate-6 opacity-60" />
             <div className="absolute inset-0 bg-pastel-pink rounded-block rotate-3 opacity-80" />
@@ -36,7 +50,7 @@ export function CardUXSection() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

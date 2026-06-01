@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+
 const STEPS = [
   {
     number: '01',
@@ -19,22 +21,40 @@ const STEPS = [
   },
 ] as const;
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 32 },
+  visible: { opacity: 1, y: 0 },
+};
+
 export function HowItWorksSection() {
   return (
     <section className="px-6 py-24 bg-white">
       <div className="max-w-5xl mx-auto">
-        <p className="text-sm font-mono uppercase tracking-widest text-black/40 mb-4">
-          How it works
-        </p>
-        <h2 className="text-5xl font-black text-black tracking-tighter mb-16">
-          세 단계로 시작하는 새로운 만남
-        </h2>
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
+          <p className="text-sm font-mono uppercase tracking-widest text-black/40 mb-4">
+            How it works
+          </p>
+          <h2 className="text-5xl font-black text-black tracking-tighter mb-16">
+            세 단계로 시작하는 새로운 만남
+          </h2>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {STEPS.map((step) => (
-            <div
+          {STEPS.map((step, i) => (
+            <motion.div
               key={step.number}
               className={`${step.bg} rounded-block p-8 flex flex-col gap-4`}
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-80px' }}
+              transition={{ duration: 0.5, ease: 'easeOut', delay: i * 0.12 }}
             >
               <span className="text-4xl font-black text-black/20 font-mono">
                 {step.number}
@@ -43,7 +63,7 @@ export function HowItWorksSection() {
               <p className="text-sm text-black/60 leading-relaxed">
                 {step.description}
               </p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

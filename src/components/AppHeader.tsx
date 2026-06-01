@@ -20,8 +20,16 @@ export function AppHeader({ pendingRequestCount = 0, variant = 'app' }: AppHeade
   const { isLoggedIn, user, logout } = useAuth();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   const isLanding = variant === 'landing';
+
+  useEffect(() => {
+    if (!isLanding) return;
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isLanding]);
 
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -53,7 +61,7 @@ export function AppHeader({ pendingRequestCount = 0, variant = 'app' }: AppHeade
   }, [isMenuOpen]);
 
   const headerClass = isLanding
-    ? 'fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-sm border-b border-black/5'
+    ? `fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-white/90 backdrop-blur-sm border-b transition-[border-color,box-shadow] duration-200 ${scrolled ? 'border-black/10 shadow-sm' : 'border-black/5'}`
     : 'flex items-center justify-between px-5 py-3.5 border-b border-black/5 bg-white';
 
   return (

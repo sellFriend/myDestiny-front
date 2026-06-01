@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { ROUTES } from '@/constants/routes';
 
 interface CTASectionProps {
@@ -8,7 +9,13 @@ interface CTASectionProps {
 export function CTASection({ onRegisterFriend }: CTASectionProps) {
   return (
     <section className="px-6 py-24 bg-pastel-navy text-white">
-      <div className="max-w-3xl mx-auto text-center">
+      <motion.div
+        className="max-w-3xl mx-auto text-center"
+        initial={{ opacity: 0, y: 32 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-80px' }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      >
         <h2 className="text-5xl font-black tracking-tighter mb-6 leading-tight">
           소개할 준비가 됐다면<br />지금 시작하세요
         </h2>
@@ -31,7 +38,7 @@ export function CTASection({ onRegisterFriend }: CTASectionProps) {
             둘러보기
           </Link>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }
