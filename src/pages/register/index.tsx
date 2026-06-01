@@ -932,7 +932,7 @@ function ConfirmSubmitModal({
           <button
             type="button"
             onClick={() => setIsImageOpen(false)}
-            className="absolute right-4 top-[calc(env(safe-area-inset-top,0px)+1rem)] z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25"
+            className="absolute right-4 top-[calc(env(safe-area-inset-top,0px)+1rem)] z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
             aria-label="닫기"
           >
             <X className="h-5 w-5" />
