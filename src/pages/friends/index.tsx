@@ -5,6 +5,7 @@ import { ROUTES } from '@/constants/routes';
 import { AppHeader } from '@/components/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { FriendCard, type Friend } from '@/pages/friends/components/FriendCard';
+import { FriendCardSkeleton } from '@/pages/friends/components/FriendCardSkeleton';
 import { FriendDetailModal } from '@/pages/friends/components/FriendDetailModal';
 import { FriendInviteSheet } from '@/pages/friends/components/FriendInviteSheet';
 import { useFriends } from '@/pages/friends/hooks/useFriends';
@@ -345,8 +346,10 @@ const FriendsPage = () => {
             </p>
           </div>
         ) : isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="w-6 h-6 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <FriendCardSkeleton key={i} />
+            ))}
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">

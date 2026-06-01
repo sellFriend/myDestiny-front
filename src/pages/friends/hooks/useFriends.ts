@@ -52,6 +52,7 @@ export function useFriends(enabled = true) {
     queryKey: queryKeys.profiles.mine,
     queryFn: profileApi.listMine,
     enabled,
+    refetchInterval: 60_000,
   });
 
   const ids = useMemo(() => listQuery.data?.map((p) => p.id) ?? [], [listQuery.data]);
