@@ -50,7 +50,6 @@ const HomePage = () => {
         <LoginModal
           message="친구를 등록하려면 로그인이 필요해요."
           onClose={() => setShowLoginModal(false)}
-          onSuccess={goToFriendsAndAdd}
         />
       )}
     </div>

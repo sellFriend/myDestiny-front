@@ -95,7 +95,7 @@ export function AppHeader({ pendingRequestCount = 0, variant = 'app' }: AppHeade
         {isLoggedIn ? (
           <div className="flex items-center gap-3 shrink-0">
             <span className="hidden md:block text-sm text-black/50">
-              {user?.name}님! 안녕하세요.
+              {user?.nickname}님! 안녕하세요.
             </span>
             <button
               type="button"
@@ -200,7 +200,7 @@ export function AppHeader({ pendingRequestCount = 0, variant = 'app' }: AppHeade
               </nav>
 
               <div className="border-t border-black/5 px-5 py-4">
-                <p className="mb-3 text-sm text-black/50">{user?.name}님! 안녕하세요.</p>
+                <p className="mb-3 text-sm text-black/50">{user?.nickname}님! 안녕하세요.</p>
                 <button
                   type="button"
                   onClick={() => {

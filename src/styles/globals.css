@@ -139,3 +139,16 @@ body {
   background-color: var(--background);
   color: var(--foreground);
 }
+
+/* 모든 클릭 가능한 버튼/요소에 포인터 커서 (Tailwind v4 preflight가 기본 default로 두는 것을 보정) */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label[for],
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed;
+}

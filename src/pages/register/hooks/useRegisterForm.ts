@@ -11,7 +11,9 @@ export interface RegisterFormData {
   mbti: string;
   hobbies: string[];
   intro: string;
-  contact: string;
+  phoneNumber: string; // 하이픈 없는 숫자만 저장 (서버 전송용). 화면에서만 하이픈 표시. 중복 방지용·비공개.
+  instagramId: string; // 공개 연락처 (인스타/카카오 중 하나는 필수)
+  kakaoId: string; // 공개 연락처 (인스타/카카오 중 하나는 필수)
 }
 
 const INITIAL_FORM: RegisterFormData = {
@@ -25,10 +27,12 @@ const INITIAL_FORM: RegisterFormData = {
   mbti: '',
   hobbies: [],
   intro: '',
-  contact: '',
+  phoneNumber: '',
+  instagramId: '',
+  kakaoId: '',
 };
 
-const TOTAL_STEPS = 10;
+const TOTAL_STEPS = 11;
 
 export function useRegisterForm() {
   const [step, setStep] = useState(1);

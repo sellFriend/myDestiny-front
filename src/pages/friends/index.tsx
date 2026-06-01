@@ -3,9 +3,11 @@ import { useLocation } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { AppHeader } from '@/components/AppHeader';
+import { useAuth } from '@/contexts/AuthContext';
 import { FriendCard, type Friend } from '@/pages/friends/components/FriendCard';
 import { FriendDetailModal } from '@/pages/friends/components/FriendDetailModal';
 import { FriendInviteSheet } from '@/pages/friends/components/FriendInviteSheet';
+import { useFriends } from '@/pages/friends/hooks/useFriends';
 
 const INVITE_TITLE = '마담 친구 초대';
 const INVITE_TEXT = '링크를 눌러 내 친구로 연결해줘요.';
@@ -47,38 +49,6 @@ declare global {
   }
 }
 
-const MOCK_FRIENDS: Friend[] = [
-  {
-    id: 'f1',
-    name: '오민수',
-    age: 28,
-    isStudent: false,
-    occupation: '회계사',
-    mbti: 'ISTJ',
-    intro: '꼼꼼하고 성실한 사람. 주말엔 등산 즐겨요.',
-    hobbies: ['등산', '요리', '자기계발'],
-    photo: 'https://i.pravatar.cc/400?img=12',
-    cardColor: 'bg-pastel-lime',
-    requestCount: 3,
-    status: 'approved',
-  },
-  {
-    id: 'f2',
-    name: '정다은',
-    age: 25,
-    isStudent: true,
-    school: '고려대학교',
-    major: '간호학과',
-    mbti: 'ESFJ',
-    intro: '밝고 에너지 넘쳐요. 사람 만나는 걸 좋아합니다.',
-    hobbies: ['여행', '카페', '친구만남'],
-    photo: 'https://i.pravatar.cc/400?img=45',
-    cardColor: 'bg-pastel-pink',
-    requestCount: 1,
-    status: 'approved',
-  },
-];
-
 function createInviteToken() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID().replace(/-/g, '').slice(0, 12);
@@ -96,6 +66,20 @@ function createSmsUrl(inviteLink: string) {
   const body = encodeURIComponent(`${INVITE_TITLE}\n${INVITE_TEXT}\n${inviteLink}`);
   const separator = /iPad|iPhone|iPod/i.test(navigator.userAgent) ? '&' : '?';
   return `sms:${separator}body=${body}`;
+}
+
+async function writeClipboard(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** 앱(모바일) 화면이면 true. AppHeader와 동일하게 md(768px) 경계를 사용한다. */
+function isAppViewport() {
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
 }
 
 async function loadKakaoSdk() {
@@ -138,9 +122,11 @@ async function loadKakaoSdk() {
 
 const FriendsPage = () => {
   const location = useLocation();
-  const [friends, setFriends] = useState<Friend[]>(MOCK_FRIENDS);
+  const { isLoggedIn } = useAuth();
+  const { friends, isLoading, isError, refetch, deleteFriend } = useFriends(isLoggedIn);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [inviteLink, setInviteLink] = useState('');
+  const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
   const [isKakaoReady, setIsKakaoReady] = useState(false);
   const [toast, setToast] = useState('');
@@ -160,10 +146,28 @@ const FriendsPage = () => {
     }, duration);
   }, []);
 
-  const handleAddFriend = useCallback(() => {
-    setInviteLink(createInviteLink());
-    setIsInviteSheetOpen(true);
-  }, []);
+  const handleAddFriend = useCallback(async () => {
+    const link = createInviteLink();
+    setInviteLink(link);
+
+    // 웹/앱 모두 클립보드에 먼저 복사한다.
+    const copied = await writeClipboard(link);
+    setIsLinkCopied(copied);
+
+    if (isAppViewport()) {
+      // 앱: 화면 가로를 꽉 채우는 바텀 시트로 공유 채널을 보여준다.
+      setIsInviteSheetOpen(true);
+      return;
+    }
+
+    // 웹: 시트 없이 토스트로만 복사 완료를 알린다.
+    showToast(
+      copied
+        ? '초대 링크를 복사했어요. 친구에게 붙여넣어 보내주세요'
+        : `링크를 직접 복사해 주세요: ${link}`,
+      copied ? 3500 : 5000,
+    );
+  }, [showToast]);
 
   useEffect(() => {
     if (location.state?.triggerAddFriend) {
@@ -209,15 +213,17 @@ const FriendsPage = () => {
     void ensureKakaoReady();
   }, [ensureKakaoReady, isInviteSheetOpen, kakaoKey]);
 
-  const copyInviteLink = useCallback(async (message = '초대 링크를 복사했어요.') => {
+  const copyInviteLink = useCallback(async (message = '초대 링크를 복사했어요') => {
     if (!inviteLink) {
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(inviteLink);
+    const copied = await writeClipboard(inviteLink);
+    setIsLinkCopied(copied);
+
+    if (copied) {
       showToast(message);
-    } catch {
+    } else {
       showToast(`링크를 직접 복사해 주세요: ${inviteLink}`, 5000);
     }
   }, [inviteLink, showToast]);
@@ -234,12 +240,12 @@ const FriendsPage = () => {
     };
 
     if (typeof navigator.share !== 'function') {
-      await copyInviteLink(fallbackMessage ?? '기기 공유를 지원하지 않아 링크를 복사했어요.');
+      await copyInviteLink(fallbackMessage ?? '기기 공유를 지원하지 않아 링크를 복사했어요');
       return;
     }
 
     if (typeof navigator.canShare === 'function' && !navigator.canShare(shareData)) {
-      await copyInviteLink(fallbackMessage ?? '이 기기에서는 공유할 수 없어 링크를 복사했어요.');
+      await copyInviteLink(fallbackMessage ?? '이 기기에서는 공유할 수 없어 링크를 복사했어요');
       return;
     }
 
@@ -250,7 +256,7 @@ const FriendsPage = () => {
         return;
       }
 
-      await copyInviteLink(fallbackMessage ?? '공유 창을 열지 못해 링크를 복사했어요.');
+      await copyInviteLink(fallbackMessage ?? '공유 창을 열지 못해 링크를 복사했어요');
     }
   }, [copyInviteLink, inviteLink]);
 
@@ -262,7 +268,7 @@ const FriendsPage = () => {
     const Kakao = await ensureKakaoReady();
 
     if (!Kakao?.Share) {
-      await shareWithSystemSheet('카카오 공유 설정이 없어 링크를 복사했어요.');
+      await shareWithSystemSheet('카카오 공유 설정이 없어 링크를 복사했어요');
       return;
     }
 
@@ -288,12 +294,12 @@ const FriendsPage = () => {
         ],
       });
     } catch {
-      await shareWithSystemSheet('카카오 공유를 열지 못해 링크를 복사했어요.');
+      await shareWithSystemSheet('카카오 공유를 열지 못해 링크를 복사했어요');
     }
   }, [ensureKakaoReady, inviteLink, shareWithSystemSheet]);
 
   const handleInstagramShare = useCallback(async () => {
-    await shareWithSystemSheet('인스타그램 공유를 열지 못해 링크를 복사했어요.');
+    await shareWithSystemSheet('인스타그램 공유를 열지 못해 링크를 복사했어요');
   }, [shareWithSystemSheet]);
 
   const handleSmsShare = useCallback(async () => {
@@ -310,7 +316,7 @@ const FriendsPage = () => {
   }, [copyInviteLink, inviteLink]);
 
   const handleDelete = (id: string) => {
-    setFriends((prev) => prev.filter((f) => f.id !== id));
+    deleteFriend(id);
   };
 
   return (
@@ -331,7 +337,30 @@ const FriendsPage = () => {
           </button>
         </div>
 
-        {friends.length === 0 ? (
+        {!isLoggedIn ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <p className="text-lg font-black text-black mb-2">로그인이 필요해요</p>
+            <p className="text-sm text-black/40 leading-relaxed">
+              내 친구를 관리하려면 먼저 로그인해 주세요
+            </p>
+          </div>
+        ) : isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="w-6 h-6 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center h-64 text-center">
+            <p className="text-lg font-black text-black mb-2">불러오지 못했어요</p>
+            <p className="text-sm text-black/40 mb-5">잠시 후 다시 시도해 주세요</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-pill hover:bg-black/80 transition-colors"
+            >
+              다시 시도
+            </button>
+          </div>
+        ) : friends.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center">
             <p className="text-lg font-black text-black mb-2">등록된 친구가 없어요</p>
             <p className="text-sm text-black/40 mb-6 leading-relaxed">
@@ -371,6 +400,7 @@ const FriendsPage = () => {
 
       <FriendInviteSheet
         inviteLink={inviteLink}
+        isCopied={isLinkCopied}
         isKakaoReady={isKakaoReady}
         isOpen={isInviteSheetOpen}
         onClose={() => setIsInviteSheetOpen(false)}
