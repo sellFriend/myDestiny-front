@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { ROUTES } from '@/constants/routes';
 
 interface HeroSectionProps {
@@ -50,17 +51,29 @@ export function HeroSection({ onRegisterFriend }: HeroSectionProps) {
 
 function StackedCardPreview() {
   const cards = [
-    { color: 'bg-pastel-lilac', rotate: '-rotate-6', z: 'z-0' },
-    { color: 'bg-pastel-cream', rotate: '-rotate-3', z: 'z-10' },
-    { color: 'bg-white border border-black/10', rotate: 'rotate-0', z: 'z-20' },
+    { color: 'bg-pastel-lilac', rotate: -6, zIndex: 0 },
+    { color: 'bg-pastel-cream', rotate: -3, zIndex: 10 },
+    { color: 'bg-white border border-black/10', rotate: 0, zIndex: 20 },
   ];
 
   return (
     <div className="relative w-52 h-72">
       {cards.map((card, i) => (
-        <div
+        <motion.div
           key={i}
-          className={`absolute inset-0 ${card.color} ${card.rotate} ${card.z} rounded-block shadow-lg`}
+          className={`absolute inset-0 ${card.color} rounded-block shadow-lg`}
+          style={{ zIndex: card.zIndex }}
+          initial={{ rotate: card.rotate }}
+          animate={
+            i === 2
+              ? { x: [0, 8, 0, -8, 0] }
+              : { rotate: card.rotate }
+          }
+          transition={
+            i === 2
+              ? { duration: 8, repeat: Infinity, ease: 'easeInOut' }
+              : undefined
+          }
         >
           {i === 2 && (
             <div className="p-5 h-full flex flex-col justify-end">
@@ -69,8 +82,9 @@ function StackedCardPreview() {
               <div className="w-16 h-2 bg-black/5 rounded" />
             </div>
           )}
-        </div>
+        </motion.div>
       ))}
+
     </div>
   );
 }
