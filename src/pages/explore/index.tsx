@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { AppHeader } from "@/components/AppHeader";
 import {
   useSwipeCards,
@@ -81,20 +82,24 @@ const ExplorePage = () => {
         </div>
       </main>
 
-      {selectedProfile && (
-        <DetailModal
-          profile={selectedProfile}
-          onClose={closeDetail}
-          onContactRequest={handleContactRequest}
-        />
-      )}
+      <AnimatePresence>
+        {selectedProfile && (
+          <DetailModal
+            profile={selectedProfile}
+            onClose={closeDetail}
+            onContactRequest={handleContactRequest}
+          />
+        )}
+      </AnimatePresence>
 
-      {requestProfile && (
-        <ContactRequestModal
-          profile={requestProfile}
-          onClose={() => setRequestProfile(null)}
-        />
-      )}
+      <AnimatePresence>
+        {requestProfile && (
+          <ContactRequestModal
+            profile={requestProfile}
+            onClose={() => setRequestProfile(null)}
+          />
+        )}
+      </AnimatePresence>
 
       {showLoginModal && (
         <LoginModal

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { X, Send } from 'lucide-react';
 import { type Profile } from '@/pages/explore/hooks/useSwipeCards';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,12 +40,20 @@ export function DetailModal({ profile, onClose, onContactRequest }: DetailModalP
 
   return (
     <>
-      <div
+      <motion.div
         className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
         onClick={onClose}
       >
-        <div
+        <motion.div
           className="w-full max-w-sm bg-white rounded-block overflow-hidden max-h-[90vh] flex flex-col"
+          initial={{ y: 60, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 60, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 320, damping: 34 }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Photo header */}
@@ -106,8 +115,8 @@ export function DetailModal({ profile, onClose, onContactRequest }: DetailModalP
               연락 요청 보내기
             </button>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {showLogin && (
         <LoginModal
