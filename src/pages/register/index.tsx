@@ -363,7 +363,11 @@ const RegisterPage = () => {
             {step === 2 && (
               <StepWrapper title="기본 정보를 알려주세요">
                 <div className="flex flex-col gap-6">
-                  <StackReveal show={revealStage >= 1} fieldKey="age" label="나이">
+                  <StackReveal
+                    show={revealStage >= 1}
+                    fieldKey="age"
+                    label="나이"
+                  >
                     <input
                       type="number"
                       value={form.age}
@@ -380,7 +384,7 @@ const RegisterPage = () => {
                       type="text"
                       value={form.name}
                       onChange={(e) => updateField("name", e.target.value)}
-                      placeholder="예: 김지우"
+                      placeholder="예: 김민후"
                       className="w-full bg-transparent py-2 text-2xl font-bold text-black outline-none placeholder:text-black/20"
                       autoFocus={revealStage === 0}
                     />
