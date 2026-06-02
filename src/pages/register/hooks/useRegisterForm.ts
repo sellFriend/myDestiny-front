@@ -32,7 +32,7 @@ const INITIAL_FORM: RegisterFormData = {
   kakaoId: '',
 };
 
-const TOTAL_STEPS = 11;
+const TOTAL_STEPS = 7;
 
 export function useRegisterForm() {
   const [step, setStep] = useState(1);

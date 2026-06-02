@@ -326,17 +326,19 @@ const FriendsPage = () => {
       <AppHeader />
 
       <main className="flex-1 px-5 py-8 max-w-2xl mx-auto w-full">
-        {/* 페이지 타이틀 + 친구 추가 버튼 */}
+        {/* 페이지 타이틀 + 친구 추가 버튼 (친구가 있을 때만 노출) */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-black text-black">내 친구</h1>
-          <button
-            type="button"
-            onClick={handleAddFriend}
-            className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-sm font-semibold rounded-pill hover:bg-black/80 transition-colors"
-          >
-            <UserPlus className="w-4 h-4" />
-            친구 추가
-          </button>
+          {friends.length > 0 && (
+            <button
+              type="button"
+              onClick={handleAddFriend}
+              className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-sm font-semibold rounded-pill hover:bg-black/80 transition-colors"
+            >
+              <UserPlus className="w-4 h-4" />
+              친구 추가
+            </button>
+          )}
         </div>
 
         {!isLoggedIn ? (
@@ -365,7 +367,7 @@ const FriendsPage = () => {
             </button>
           </div>
         ) : friends.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
+          <div className="flex flex-col items-center justify-center h-80 sm:h-64 text-center">
             <p className="text-lg font-black text-black mb-2">등록된 친구가 없어요</p>
             <p className="text-sm text-black/40 mb-6 leading-relaxed">
               친구 추가 버튼을 눌러 링크를 생성하고<br />친구에게 공유해보세요
@@ -373,9 +375,9 @@ const FriendsPage = () => {
             <button
               type="button"
               onClick={handleAddFriend}
-              className="flex items-center gap-2 px-6 py-3 bg-black text-white text-sm font-semibold rounded-pill"
+              className="mt-6 sm:mt-0 flex items-center gap-2 px-8 py-4 text-base sm:px-6 sm:py-3 sm:text-sm bg-black text-white font-semibold rounded-pill"
             >
-              <UserPlus className="w-4 h-4" />
+              <UserPlus className="w-5 h-5 sm:w-4 sm:h-4" />
               친구 추가하기
             </button>
           </div>
