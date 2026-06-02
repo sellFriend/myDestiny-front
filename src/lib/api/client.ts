@@ -12,7 +12,7 @@ import {
   setTokens,
 } from './tokenStore';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://fixlog.art';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://fixlog.art/destiny';
 
 /** 토큰 갱신/로그인이 필요 없는 public 경로 (Authorization 헤더 생략) */
 const PUBLIC_PATHS = [/^\/oauth2\//, /^\/login\//, /^\/api\/auth\/refresh$/, /^\/form\//, /^\/api\/invitations\/[^/]+$/];
