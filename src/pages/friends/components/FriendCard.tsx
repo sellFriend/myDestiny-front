@@ -13,6 +13,8 @@ export interface Friend {
   cardColor: string;
   requestCount: number;
   status: 'pending' | 'approved';
+  /** 등록된 친구가 매칭 요청을 잠시 받지 않도록 비활성화한 상태. (status === 'approved' 일 때만 의미 있음) */
+  isActive: boolean;
 }
 
 interface FriendCardProps {
@@ -47,6 +49,14 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
     ? `${friend.school} · ${friend.major}`
     : friend.occupation;
 
+  const isDeactivated = friend.status === 'approved' && !friend.isActive;
+  const statusBadge =
+    friend.status === 'pending'
+      ? { label: '승인 대기', className: 'bg-white/85 text-black/60' }
+      : isDeactivated
+        ? { label: '비활성', className: 'bg-black/55 text-white backdrop-blur-sm' }
+        : { label: '등록됨', className: 'bg-black text-white' };
+
   return (
     <div
       role="button"
@@ -66,7 +76,9 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
           <img
             src={friend.photo}
             alt={friend.name}
-            className="absolute inset-0 h-full w-full object-cover"
+            className={`absolute inset-0 h-full w-full object-cover ${
+              isDeactivated ? 'grayscale' : ''
+            }`}
           />
         ) : (
           <span className="text-8xl font-black text-white/60 select-none">
@@ -74,14 +86,13 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
           </span>
         )}
 
+        {/* 비활성 친구는 사진을 흐리게 덮어 '쉬는 중'임을 시각적으로 구분 */}
+        {isDeactivated && <div className="absolute inset-0 bg-white/45" />}
+
         <span
-          className={`absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-pill ${
-            friend.status === 'approved'
-              ? 'bg-black text-white'
-              : 'bg-white/85 text-black/60'
-          }`}
+          className={`absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-pill ${statusBadge.className}`}
         >
-          {friend.status === 'approved' ? '등록됨' : '승인 대기'}
+          {statusBadge.label}
         </span>
 
         {friend.requestCount > 0 && (

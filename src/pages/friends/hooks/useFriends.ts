@@ -1,6 +1,12 @@
 import { useMemo } from 'react';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ProfileStatus, profileApi, queryKeys, type ProfileDetail } from '@/lib/api';
+import {
+  ProfileStatus,
+  ProfileVisibility,
+  profileApi,
+  queryKeys,
+  type ProfileDetail,
+} from '@/lib/api';
 import type { Friend } from '@/pages/friends/components/FriendCard';
 
 const CARD_COLORS = [
@@ -37,6 +43,7 @@ function toFriend(profile: ProfileDetail, index: number): Friend {
     cardColor: CARD_COLORS[index % CARD_COLORS.length],
     requestCount: 0, // 프로필별 받은 매칭 수 API가 없어 0으로 둔다.
     status: profile.status === ProfileStatus.PUBLISHED ? 'approved' : 'pending',
+    isActive: profile.status !== ProfileStatus.SUSPENDED,
   };
 }
 
@@ -73,9 +80,21 @@ export function useFriends(enabled = true) {
     [detailQueries],
   );
 
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.profiles.mine });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => profileApi.remove(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.profiles.mine }),
+    onSuccess: invalidate,
+  });
+  // 비활성화 = 매칭 노출에서 잠시 빼기(비공개), 활성화 = 다시 공개
+  const deactivateMutation = useMutation({
+    mutationFn: (id: string) => profileApi.setVisibility(id, ProfileVisibility.PRIVATE),
+    onSuccess: invalidate,
+  });
+  const activateMutation = useMutation({
+    mutationFn: (id: string) => profileApi.setVisibility(id, ProfileVisibility.PUBLIC),
+    onSuccess: invalidate,
   });
 
   const isDetailLoading =
@@ -87,6 +106,11 @@ export function useFriends(enabled = true) {
     isError: listQuery.isError || detailQueries.some((q) => q.isError),
     refetch: listQuery.refetch,
     deleteFriend: deleteMutation.mutate,
+    deactivateFriend: deactivateMutation.mutate,
+    activateFriend: activateMutation.mutate,
+    // TODO(API): 프로필 등록 승인/거절 엔드포인트 연결 (현재 명세 미확정)
+    approveFriend: (_id: string) => invalidate(),
+    rejectFriend: deleteMutation.mutate,
     isDeleting: deleteMutation.isPending,
   };
 }

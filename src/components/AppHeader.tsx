@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/contexts/AuthContext';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface AppHeaderProps {
   pendingRequestCount?: number;
@@ -101,10 +102,13 @@ export function AppHeader({ pendingRequestCount = 0, variant = 'app' }: AppHeade
         )}
 
         {isLoggedIn ? (
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 md:gap-3">
             <span className="hidden md:block text-sm text-black/50">
               {user?.nickname}님! 안녕하세요.
             </span>
+
+            <NotificationBell enabled={isLoggedIn} />
+
             <button
               type="button"
               onClick={logout}

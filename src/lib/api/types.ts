@@ -73,6 +73,7 @@ export const RegistrationStatus = {
 export type RegistrationStatus = (typeof RegistrationStatus)[keyof typeof RegistrationStatus];
 
 export const NotificationType = {
+  FORM_SUBMITTED: 'form_submitted',
   MATCH_REQUEST: 'match_request',
   MATCH_ACCEPTED: 'match_accepted',
   MATCH_REJECTED: 'match_rejected',

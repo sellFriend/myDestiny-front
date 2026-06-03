@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { Trash2, X } from 'lucide-react';
+import { Bell, BellOff, Check, Pencil, Trash2, X } from 'lucide-react';
 import { type Friend } from '@/pages/friends/components/FriendCard';
 
 interface FriendDetailModalProps {
   friend: Friend;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onDeactivate: (id: string) => void;
+  onActivate: (id: string) => void;
+  /** 폼 재수정 요청: 새 숏링크 생성 + 클립보드 복사 + 토스트. 복사 성공 여부를 반환. */
+  onRequestReform: (friend: Friend) => Promise<boolean> | boolean;
 }
 
 // 사진이 없을 때만 쓰이는 옅은 폴백 그라디언트
@@ -28,8 +34,19 @@ const ACCENT_TINTS: Record<string, string> = {
   'bg-pastel-pink': 'bg-[#ffb8d0]/20',
 };
 
-export function FriendDetailModal({ friend, onClose, onDelete }: FriendDetailModalProps) {
+export function FriendDetailModal({
+  friend,
+  onClose,
+  onDelete,
+  onApprove,
+  onReject,
+  onDeactivate,
+  onActivate,
+  onRequestReform,
+}: FriendDetailModalProps) {
   const [isImageOpen, setIsImageOpen] = useState(false);
+  // 폼 재수정 요청 후 모달 안에 남기는 인라인 흔적 (토스트와 이중 피드백)
+  const [reformRequested, setReformRequested] = useState(false);
 
   const fallbackGradient = FALLBACK_GRADIENTS[friend.cardColor] ?? 'from-black/15 to-black/5';
   const accentTint = ACCENT_TINTS[friend.cardColor] ?? 'bg-black/[0.03]';
@@ -38,10 +55,23 @@ export function FriendDetailModal({ friend, onClose, onDelete }: FriendDetailMod
     ? `${friend.school} · ${friend.major}`
     : friend.occupation;
 
+  const isPending = friend.status === 'pending';
+  const isDeactivated = friend.status === 'approved' && !friend.isActive;
+
   const handleDelete = () => {
     onDelete(friend.id);
     onClose();
   };
+
+  const handleReform = async () => {
+    await onRequestReform(friend);
+    setReformRequested(true);
+  };
+
+  const primaryBtn =
+    'flex flex-1 items-center justify-center gap-2 rounded-pill bg-black py-3.5 text-sm font-bold text-white transition-all hover:bg-black/85 active:scale-[0.98]';
+  const ghostBtn =
+    'flex flex-1 items-center justify-center gap-2 rounded-pill bg-black/[0.05] py-3.5 text-sm font-semibold text-black/60 transition-colors hover:bg-black/[0.09] hover:text-black/80';
 
   return (
     <>
@@ -89,12 +119,14 @@ export function FriendDetailModal({ friend, onClose, onDelete }: FriendDetailMod
 
             <span
               className={`absolute top-4 left-4 rounded-pill px-3 py-1 text-[11px] font-semibold ${
-                friend.status === 'approved'
-                  ? 'bg-black text-white'
-                  : 'bg-white/90 text-black/60 backdrop-blur-sm'
+                isPending
+                  ? 'bg-white/90 text-black/60 backdrop-blur-sm'
+                  : isDeactivated
+                    ? 'bg-black/55 text-white backdrop-blur-sm'
+                    : 'bg-black text-white'
               }`}
             >
-              {friend.status === 'approved' ? '등록된 친구' : '승인 대기'}
+              {isPending ? '승인 대기' : isDeactivated ? '비활성' : '등록된 친구'}
             </span>
           </div>
 
@@ -115,6 +147,18 @@ export function FriendDetailModal({ friend, onClose, onDelete }: FriendDetailMod
 
             {/* Details */}
             <div className="px-6 py-6 space-y-6 sm:flex-1 sm:overflow-y-auto">
+              {/* 상태 맥락 안내 */}
+              {isPending && (
+                <p className="rounded-2xl bg-black/[0.04] px-4 py-3 text-sm leading-relaxed text-black/55">
+                  친구가 폼 작성을 마쳤어요. 내용을 확인하고 등록을 승인해 주세요.
+                </p>
+              )}
+              {isDeactivated && (
+                <p className="rounded-2xl bg-black/[0.04] px-4 py-3 text-sm leading-relaxed text-black/55">
+                  지금은 매칭 요청을 받지 않아요. 다시 활성화하면 소개를 받을 수 있어요.
+                </p>
+              )}
+
               <section>
                 <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-black/35">
                   MBTI
@@ -148,16 +192,93 @@ export function FriendDetailModal({ friend, onClose, onDelete }: FriendDetailMod
               </section>
             </div>
 
-            {/* CTA */}
-            <div className="flex-shrink-0 border-t border-black/5 px-6 py-5">
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex w-full items-center justify-center gap-2 rounded-pill border border-black/15 py-3.5 text-sm font-semibold text-black/60 transition-colors hover:border-black/40 hover:text-black"
-              >
-                <Trash2 className="h-4 w-4" />
-                친구 삭제
-              </button>
+            {/* CTA — 상태별로 핵심 행동을 다르게 (Von Restorff: 가장 중요한 동작 강조) */}
+            <div className="flex-shrink-0 space-y-3 border-t border-black/5 px-6 py-5">
+              {/* 폼 재수정 요청 결과 인라인 흔적 (토스트와 이중 피드백) */}
+              {reformRequested && (
+                <p className="flex items-center justify-center gap-1.5 text-xs font-medium text-black/45">
+                  <Check className="h-3.5 w-3.5" />
+                  수정 링크를 복사했어요. 친구에게 공유해 보세요.
+                </p>
+              )}
+
+              {isPending ? (
+                <>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onApprove(friend.id);
+                        onClose();
+                      }}
+                      className={primaryBtn}
+                    >
+                      <Check className="h-4 w-4" />
+                      등록 승인
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onReject(friend.id);
+                        onClose();
+                      }}
+                      className={`${ghostBtn} max-w-[40%]`}
+                    >
+                      등록 거절
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleReform}
+                    className="flex w-full items-center justify-center gap-1.5 py-1 text-sm font-medium text-black/45 transition-colors hover:text-black/70"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    폼 다시 수정 요청하기
+                  </button>
+                </>
+              ) : (
+                <>
+                  {isDeactivated ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onActivate(friend.id);
+                        onClose();
+                      }}
+                      className={primaryBtn}
+                    >
+                      <Bell className="h-4 w-4" />
+                      다시 활성화
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button type="button" onClick={handleReform} className={ghostBtn}>
+                        <Pencil className="h-4 w-4" />
+                        폼 수정 요청
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDeactivate(friend.id);
+                          onClose();
+                        }}
+                        className={ghostBtn}
+                      >
+                        <BellOff className="h-4 w-4" />
+                        비활성화
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="flex w-full items-center justify-center gap-1.5 py-1 text-sm font-medium text-black/40 transition-colors hover:text-black/65"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    친구 삭제
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
