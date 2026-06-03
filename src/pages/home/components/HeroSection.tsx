@@ -8,7 +8,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ onRegisterFriend }: HeroSectionProps) {
   return (
-    <section className="relative -mt-16 min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden bg-white">
+    <section className="relative -mt-16 min-h-screen flex flex-col items-center justify-center px-6 pt-28 pb-20 overflow-hidden bg-white">
       <div className="absolute top-0 right-0 w-[480px] h-[480px] bg-pastel-lime rounded-block opacity-70 translate-x-1/3 -translate-y-1/4 pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[320px] h-[320px] bg-pastel-pink rounded-block opacity-60 -translate-x-1/4 translate-y-1/4 pointer-events-none" />
 
