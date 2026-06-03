@@ -187,6 +187,11 @@ export interface MatchingProfileRef {
   id: string;
   name: string;
   gender: GenderUpper;
+  /**
+   * 대표 썸네일. 요청함 카드/상세의 아바타·사진에 사용한다.
+   * TODO(API): 백엔드 매칭 응답의 프로필 ref에 추가 요청됨. 도착 전까지는 이니셜 폴백.
+   */
+  photoUrl?: string | null;
 }
 
 export interface MatchingCreateRequest {
