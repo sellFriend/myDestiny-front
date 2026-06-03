@@ -11,7 +11,7 @@ import {
   type MeResponse,
 } from '@/lib/api';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://fixlog.art';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://fixlog.art/destiny';
 
 interface AuthContextValue {
   user: MeResponse | null;
