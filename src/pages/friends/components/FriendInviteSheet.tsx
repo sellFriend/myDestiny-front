@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import {
   Check,
   Copy,
@@ -27,6 +27,10 @@ interface ChannelButtonProps {
   label: string;
   onClick: () => void;
 }
+
+/** 시트를 닫히게 하는 드래그 임계값 — 충분히 끌어내렸거나(거리) 빠르게 튕겼을 때(속도) */
+const DRAG_CLOSE_DISTANCE = 120;
+const DRAG_CLOSE_VELOCITY = 600;
 
 /** Toss 공유 시트 스타일: 큰 원형 아이콘 + 라벨, 충분한 탭 영역(Fitts) */
 function ChannelButton({ icon, label, onClick }: ChannelButtonProps) {
@@ -56,6 +60,8 @@ export function FriendInviteSheet({
   onSmsShare,
   onSystemShare,
 }: FriendInviteSheetProps) {
+  const dragControls = useDragControls();
+
   useEffect(() => {
     if (!isOpen) {
       return;
@@ -88,10 +94,27 @@ export function FriendInviteSheet({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+              drag="y"
+              dragControls={dragControls}
+              dragListener={false}
+              dragConstraints={{ top: 0 }}
+              dragElastic={{ top: 0, bottom: 0 }}
+              dragSnapToOrigin
+              onDragEnd={(_, info) => {
+                if (
+                  info.offset.y > DRAG_CLOSE_DISTANCE ||
+                  info.velocity.y > DRAG_CLOSE_VELOCITY
+                ) {
+                  onClose();
+                }
+              }}
               onClick={(event) => event.stopPropagation()}
             >
-              {/* 그래버 */}
-              <div className="flex justify-center pt-3">
+              {/* 그래버 — 끌어서 시트를 닫을 수 있는 드래그 핸들 */}
+              <div
+                className="flex cursor-grab touch-none justify-center pb-1 pt-3 active:cursor-grabbing"
+                onPointerDown={(event) => dragControls.start(event)}
+              >
                 <div className="h-1 w-9 rounded-full bg-black/15" />
               </div>
 

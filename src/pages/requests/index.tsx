@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { MatchingResponse } from '@/lib/api';
 import { MatchingCard } from '@/pages/requests/components/MatchingCard';
 import { MatchingCardSkeleton } from '@/pages/requests/components/MatchingCardSkeleton';
-import { ContactModal } from '@/pages/requests/components/ContactModal';
+import { MatchingDetailModal } from '@/pages/requests/components/MatchingDetailModal';
 import { useMatchingActions, useMatchings } from '@/pages/requests/hooks/useMatchings';
 import type { RequestTab } from '@/pages/requests/utils';
 
@@ -34,10 +34,10 @@ const EMPTY_COPY: Record<RequestTab, { title: string; desc: string }> = {
 };
 
 const RequestsPage = () => {
-  const { isLoggedIn, loginWithKakao } = useAuth();
   const [tab, setTab] = useState<RequestTab>('received');
-  const [contactTarget, setContactTarget] = useState<MatchingResponse | null>(null);
+  const [detailTarget, setDetailTarget] = useState<MatchingResponse | null>(null);
 
+  const { isLoggedIn, loginWithKakao } = useAuth();
   const { received, sent, matched, pendingReceivedCount } = useMatchings(tab, isLoggedIn);
   const { accept, reject, cancel, busyId } = useMatchingActions();
 
@@ -103,7 +103,7 @@ const RequestsPage = () => {
             onAccept={accept}
             onReject={reject}
             onCancel={cancel}
-            onViewContact={setContactTarget}
+            onOpenDetail={setDetailTarget}
           />
         ))}
       </div>
@@ -219,8 +219,25 @@ const RequestsPage = () => {
         )}
       </main>
 
-      {contactTarget && (
-        <ContactModal matching={contactTarget} onClose={() => setContactTarget(null)} />
+      {detailTarget && (
+        <MatchingDetailModal
+          matching={detailTarget}
+          variant={tab}
+          busy={busyId === detailTarget.id}
+          onClose={() => setDetailTarget(null)}
+          onAccept={(id) => {
+            accept(id);
+            setDetailTarget(null);
+          }}
+          onReject={(id) => {
+            reject(id);
+            setDetailTarget(null);
+          }}
+          onCancel={(id) => {
+            cancel(id);
+            setDetailTarget(null);
+          }}
+        />
       )}
     </div>
   );
