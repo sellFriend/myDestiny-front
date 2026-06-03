@@ -45,7 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const loginWithKakao = () => {
-    window.location.href = `${BASE_URL}/oauth2/authorization/kakao`;
+    // 현재 프론트 origin을 백엔드에 전달해, 로그인 후 이 주소로 돌아오게 한다.
+    // 로컬(localhost:5173)이든 배포 도메인이든 자동으로 맞는 곳으로 리다이렉트된다.
+    // ⚠️ 백엔드가 이 redirect_uri 파라미터를 받아 FRONTEND_URL 대신 사용해야 동작한다.
+    //    (허용 origin 화이트리스트 검증은 백엔드 책임)
+    const redirectUri = `${window.location.origin}/oauth2/callback`;
+    const params = new URLSearchParams({ redirect_uri: redirectUri });
+    window.location.href = `${BASE_URL}/oauth2/authorization/kakao?${params.toString()}`;
   };
 
   const logout = () => {
