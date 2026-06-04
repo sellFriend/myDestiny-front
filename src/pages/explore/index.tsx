@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AppHeader } from "@/components/AppHeader";
 import {
@@ -11,8 +12,36 @@ import { ContactRequestModal } from "@/pages/explore/components/ContactRequestMo
 import { LoginModal } from "@/components/LoginModal";
 import { useAuth } from "@/contexts/AuthContext";
 
+// 전체일 땐 gender 쿼리 자체를 비워 두고, 남성/여성만 파라미터를 붙인다.
+const GENDER_OPTIONS = [
+  { label: "전체", value: undefined },
+  { label: "남성", value: "male" },
+  { label: "여성", value: "female" },
+] as const;
+
 const ExplorePage = () => {
   const { isLoggedIn, loginWithKakao } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const genderParam = searchParams.get("gender");
+  const activeGender =
+    genderParam === "male" || genderParam === "female" ? genderParam : undefined;
+
+  const setGender = (value?: "male" | "female") => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value) {
+          next.set("gender", value);
+        } else {
+          next.delete("gender");
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  };
+
   const {
     profiles,
     hasMore,
@@ -47,9 +76,9 @@ const ExplorePage = () => {
     <div className="min-h-screen bg-white flex flex-col">
       <AppHeader />
 
-      <main className="flex-1 flex items-center justify-center px-4 py-4">
-        <div className="relative w-full max-w-[400px] h-[70vh] min-h-[480px] max-h-[660px]">
-          {!isLoggedIn ? (
+      <main className="flex-1 flex flex-col items-center justify-start px-4 pt-9 pb-28 md:justify-center md:pt-4 md:pb-20">
+        {!isLoggedIn ? (
+          <div className="relative w-full max-w-[400px] h-[70vh] min-h-[480px] max-h-[660px]">
             <div className="flex flex-col items-center justify-center h-full text-center px-6">
               <p className="text-5xl mb-5">💞</p>
               <p className="text-xl font-black text-black">
@@ -66,20 +95,52 @@ const ExplorePage = () => {
                 카카오로 시작하기
               </button>
             </div>
-          ) : (
-            <SwipeCardStack
-              profiles={profiles}
-              hasMore={hasMore}
-              status={status}
-              errorType={errorType}
-              showTutorial={showTutorial}
-              onSwipeProfile={swipeProfile}
-              onSwipeTutorial={swipeTutorial}
-              onOpenDetail={handleCardClick}
-              onRetry={refetch}
-            />
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex w-full max-w-[380px] flex-col">
+            {/* 성별 필터 — 카드가 비어도 다시 바꿀 수 있도록 항상 노출 */}
+            <div className="mb-3 flex items-center gap-1.5 px-1">
+              {GENDER_OPTIONS.map((opt) => {
+                const active = activeGender === opt.value;
+                return (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => setGender(opt.value)}
+                    className={`rounded-pill px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                      active
+                        ? "bg-black text-white"
+                        : "bg-black/[0.04] text-black/40 hover:bg-black/[0.08]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="relative h-[56vh] min-h-[420px] max-h-[560px] w-full">
+              <SwipeCardStack
+                profiles={profiles}
+                hasMore={hasMore}
+                status={status}
+                errorType={errorType}
+                showTutorial={showTutorial}
+                onSwipeProfile={swipeProfile}
+                onSwipeTutorial={swipeTutorial}
+                onOpenDetail={handleCardClick}
+                onRetry={refetch}
+              />
+            </div>
+
+            {/* 카드 조작 힌트 — 카드 바깥 하단에 별도 노출 */}
+            {profiles.length > 0 && !showTutorial && (
+              <p className="mt-4 text-center text-sm font-medium text-black/40">
+                카드를 탭하면 자세히 볼 수 있어요
+              </p>
+            )}
+          </div>
+        )}
       </main>
 
       <AnimatePresence>

@@ -214,7 +214,7 @@ const FriendsPage = () => {
     <div className="min-h-screen bg-white flex flex-col">
       <AppHeader />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-5 pt-8 pb-28 md:pb-8">
         {/* 페이지 타이틀 + 친구 추가 버튼 (친구가 있을 때만 노출) */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-black text-black">내 친구</h1>
@@ -389,7 +389,7 @@ const FriendsPage = () => {
       <AnimatePresence>
         {toast && (
           <motion.div
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-black text-white text-sm font-medium rounded-xl shadow-lg max-w-xs text-center leading-relaxed"
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 bg-black text-white text-sm font-medium rounded-xl shadow-lg max-w-xs text-center leading-relaxed md:bottom-6"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}

@@ -19,6 +19,16 @@ const PHOTO_GRADIENTS: Record<string, string> = {
   'bg-pastel-pink': 'from-[#e87aab]/60 to-[#e87aab]/30',
 };
 
+// 정보 영역에 깔리는 옅은 파스텔 틴트 (내 친구 카드와 동일한 톤)
+const BODY_TINTS: Record<string, string> = {
+  'bg-pastel-lime': 'bg-[#ceff6e]/20',
+  'bg-pastel-lilac': 'bg-[#c5b8ff]/20',
+  'bg-pastel-mint': 'bg-[#b8ffe5]/25',
+  'bg-pastel-coral': 'bg-[#ff8b7b]/15',
+  'bg-pastel-cream': 'bg-[#fff6d3]/35',
+  'bg-pastel-pink': 'bg-[#ffb8d0]/20',
+};
+
 export function ProfileCard({ profile, isTop, stackIndex, onSwipe, onClick }: ProfileCardProps) {
   const [isDismissed, setIsDismissed] = useState(false);
   const [dismissX, setDismissX] = useState(0);
@@ -31,6 +41,7 @@ export function ProfileCard({ profile, isTop, stackIndex, onSwipe, onClick }: Pr
   const zIndex = 10 - stackIndex;
 
   const gradient = PHOTO_GRADIENTS[profile.cardColor] ?? 'from-black/20 to-black/5';
+  const bodyTint = BODY_TINTS[profile.cardColor] ?? 'bg-black/[0.02]';
 
   const occupationLine = profile.isStudent
     ? `${profile.school} · ${profile.major}`
@@ -70,7 +81,7 @@ export function ProfileCard({ profile, isTop, stackIndex, onSwipe, onClick }: Pr
 
   return (
     <motion.div
-      className={`absolute inset-0 ${profile.cardColor} rounded-block shadow-xl overflow-hidden select-none ${isTop ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+      className={`absolute inset-0 flex flex-col bg-white rounded-block shadow-xl overflow-hidden select-none ${isTop ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
       style={{ zIndex }}
       initial={{ rotate, scale, y, x: 0 }}
       animate={
@@ -89,39 +100,44 @@ export function ProfileCard({ profile, isTop, stackIndex, onSwipe, onClick }: Pr
       whileDrag={{ scale: 1.02, rotate: 0, transition: { duration: 0 } }}
       onClick={isTop && !isDismissed ? handleClick : undefined}
     >
-      {/* Photo area */}
-      <div className={`h-[68%] bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-        <span className="text-8xl font-black text-white/60 select-none">
-          {profile.name.charAt(0)}
-        </span>
-      </div>
-
-      {/* Info area */}
-      <div className="px-5 pt-3 pb-3 flex flex-col gap-1.5">
-        <div className="flex items-baseline gap-2">
-          <h3 className="text-xl font-black text-black">{profile.name}</h3>
-          <span className="text-sm font-bold text-black/50">{profile.age}세</span>
-        </div>
-
-        <p className="text-xs text-black/55 font-medium leading-snug">{occupationLine}</p>
-
-        <div className="flex items-center flex-wrap gap-1">
-          <span className="px-2 py-0.5 bg-black/15 text-black/70 text-xs font-bold rounded-pill">
-            {profile.mbti}
+      {/* Photo area — 사진이 있으면 채우고, 없으면 이니셜로 폴백 */}
+      <div className={`relative h-[66%] shrink-0 overflow-hidden bg-gradient-to-br ${gradient} flex items-center justify-center`}>
+        {profile.photo ? (
+          <img
+            src={profile.photo}
+            alt={profile.name}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <span className="text-7xl font-black text-white/70 select-none">
+            {profile.name.charAt(0)}
           </span>
-          {profile.hobbies.slice(0, 3).map((h) => (
-            <span key={h} className="px-2 py-0.5 bg-black/10 text-black/60 text-xs rounded-pill">
-              {h}
-            </span>
-          ))}
-        </div>
+        )}
       </div>
 
-      {isTop && !isDismissed && (
-        <p className="absolute bottom-2 left-0 right-0 text-center text-[10px] text-black/30 font-medium">
-          탭하여 상세 보기
+      {/* Info area — 직업·MBTI → 이름, 나이 → 취미. 수직 중앙 정렬로 여백 균형 */}
+      <div className={`${bodyTint} flex flex-1 flex-col justify-center gap-2 px-5 py-4`}>
+        <p className="text-[13px] font-medium uppercase tracking-wide text-black/45">
+          {occupationLine} · {profile.mbti}
         </p>
-      )}
+
+        <h3 className="text-[28px] font-black leading-tight text-black">
+          {profile.name}, {profile.age}
+        </h3>
+
+        {profile.hobbies.length > 0 && (
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            {profile.hobbies.slice(0, 3).map((h) => (
+              <span
+                key={h}
+                className="rounded-pill bg-black/[0.06] px-3 py-1 text-[13px] font-medium text-black/55"
+              >
+                {h}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }

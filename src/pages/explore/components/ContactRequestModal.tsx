@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Send, Check } from 'lucide-react';
+import { Send, Check } from 'lucide-react';
 import { type Profile } from '@/pages/explore/hooks/useSwipeCards';
 
 const MY_FRIENDS = [
@@ -81,19 +81,12 @@ export function ContactRequestModal({ profile, onClose }: ContactRequestModalPro
               transition={{ duration: 0.15 }}
             >
               <div className={`${profile.cardColor} p-5`}>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-mono uppercase tracking-widest text-black/40 mb-1">
-                      {occupationLine} · {profile.mbti}
-                    </p>
-                    <h3 className="text-xl font-black text-black">
-                      {profile.name}, {profile.age}
-                    </h3>
-                  </div>
-                  <button type="button" onClick={onClose} className="p-1">
-                    <X className="w-5 h-5 text-black/40" />
-                  </button>
-                </div>
+                <p className="text-xs font-mono uppercase tracking-widest text-black/40 mb-1">
+                  {occupationLine} · {profile.mbti}
+                </p>
+                <h3 className="text-xl font-black text-black">
+                  {profile.name}, {profile.age}
+                </h3>
               </div>
 
               <div className="p-6 space-y-4">

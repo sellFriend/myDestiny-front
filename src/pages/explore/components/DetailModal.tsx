@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { type Profile } from '@/pages/explore/hooks/useSwipeCards';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginModal } from '@/components/LoginModal';
@@ -58,10 +58,6 @@ export function DetailModal({ profile, onClose, onContactRequest }: DetailModalP
         >
           {/* Photo header */}
           <div className={`${profile.cardColor} relative flex-shrink-0`}>
-            <button type="button" onClick={onClose} className="absolute top-4 right-4 z-10 p-1">
-              <X className="w-5 h-5 text-black/50" />
-            </button>
-
             <div className={`h-36 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
               <span className="text-6xl font-black text-white/60">{profile.name.charAt(0)}</span>
             </div>
