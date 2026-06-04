@@ -13,49 +13,12 @@ import { useFriends } from '@/pages/friends/hooks/useFriends';
 
 const INVITE_TITLE = '마담 친구 초대';
 const INVITE_TEXT = '링크를 눌러 내 친구로 연결해줘요.';
-const KAKAO_SDK_URL = 'https://t1.kakaocdn.net/kakao_js_sdk/2.8.1/kakao.min.js';
 
 type FriendTab = 'registered' | 'pending';
 const FRIEND_TABS: { key: FriendTab; label: string }[] = [
   { key: 'registered', label: '등록된 친구' },
   { key: 'pending', label: '승인 대기' },
 ];
-
-interface KakaoShareLink {
-  mobileWebUrl: string;
-  webUrl: string;
-}
-
-interface KakaoShareButton {
-  link: KakaoShareLink;
-  title: string;
-}
-
-interface KakaoShareFeedContent {
-  description: string;
-  link: KakaoShareLink;
-  title: string;
-}
-
-interface KakaoShareFeedPayload {
-  buttons: KakaoShareButton[];
-  content: KakaoShareFeedContent;
-  objectType: 'feed';
-}
-
-interface KakaoSdk {
-  Share?: {
-    sendDefault: (payload: KakaoShareFeedPayload) => void;
-  };
-  init: (appKey: string) => void;
-  isInitialized: () => boolean;
-}
-
-declare global {
-  interface Window {
-    Kakao?: KakaoSdk;
-  }
-}
 
 function createInviteToken() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -90,43 +53,6 @@ function isAppViewport() {
   return typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
 }
 
-async function loadKakaoSdk() {
-  if (window.Kakao) {
-    return window.Kakao;
-  }
-
-  return new Promise<KakaoSdk>((resolve, reject) => {
-    const existingScript = document.querySelector<HTMLScriptElement>('script[data-kakao-sdk="true"]');
-
-    const handleLoad = () => {
-      if (window.Kakao) {
-        resolve(window.Kakao);
-        return;
-      }
-
-      reject(new Error('Kakao SDK is unavailable.'));
-    };
-
-    const handleError = () => {
-      reject(new Error('Failed to load Kakao SDK.'));
-    };
-
-    if (existingScript) {
-      existingScript.addEventListener('load', handleLoad, { once: true });
-      existingScript.addEventListener('error', handleError, { once: true });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = KAKAO_SDK_URL;
-    script.async = true;
-    script.crossOrigin = 'anonymous';
-    script.dataset.kakaoSdk = 'true';
-    script.addEventListener('load', handleLoad, { once: true });
-    script.addEventListener('error', handleError, { once: true });
-    document.head.appendChild(script);
-  });
-}
 
 const FriendsPage = () => {
   const location = useLocation();
@@ -147,11 +73,8 @@ const FriendsPage = () => {
   const [inviteLink, setInviteLink] = useState('');
   const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
-  const [isKakaoReady, setIsKakaoReady] = useState(false);
   const [toast, setToast] = useState('');
   const toastTimerRef = useRef<number | null>(null);
-
-  const kakaoKey = import.meta.env.VITE_KAKAO_JAVASCRIPT_KEY;
 
   const showToast = useCallback((message: string, duration = 3500) => {
     if (toastTimerRef.current !== null) {
@@ -203,35 +126,6 @@ const FriendsPage = () => {
     };
   }, []);
 
-  const ensureKakaoReady = useCallback(async () => {
-    if (!kakaoKey) {
-      return null;
-    }
-
-    try {
-      const Kakao = await loadKakaoSdk();
-
-      if (!Kakao.isInitialized()) {
-        Kakao.init(kakaoKey);
-      }
-
-      const initialized = Kakao.isInitialized();
-      setIsKakaoReady(initialized);
-      return initialized ? Kakao : null;
-    } catch {
-      setIsKakaoReady(false);
-      return null;
-    }
-  }, [kakaoKey]);
-
-  useEffect(() => {
-    if (!isInviteSheetOpen || !kakaoKey) {
-      return;
-    }
-
-    void ensureKakaoReady();
-  }, [ensureKakaoReady, isInviteSheetOpen, kakaoKey]);
-
   const copyInviteLink = useCallback(async (message = '초대 링크를 복사했어요') => {
     if (!inviteLink) {
       return;
@@ -278,48 +172,6 @@ const FriendsPage = () => {
       await copyInviteLink(fallbackMessage ?? '공유 창을 열지 못해 링크를 복사했어요');
     }
   }, [copyInviteLink, inviteLink]);
-
-  const handleKakaoShare = useCallback(async () => {
-    if (!inviteLink) {
-      return;
-    }
-
-    const Kakao = await ensureKakaoReady();
-
-    if (!Kakao?.Share) {
-      await shareWithSystemSheet('카카오 공유 설정이 없어 링크를 복사했어요');
-      return;
-    }
-
-    try {
-      Kakao.Share.sendDefault({
-        objectType: 'feed',
-        content: {
-          title: INVITE_TITLE,
-          description: INVITE_TEXT,
-          link: {
-            mobileWebUrl: inviteLink,
-            webUrl: inviteLink,
-          },
-        },
-        buttons: [
-          {
-            title: '친구 등록하기',
-            link: {
-              mobileWebUrl: inviteLink,
-              webUrl: inviteLink,
-            },
-          },
-        ],
-      });
-    } catch {
-      await shareWithSystemSheet('카카오 공유를 열지 못해 링크를 복사했어요');
-    }
-  }, [ensureKakaoReady, inviteLink, shareWithSystemSheet]);
-
-  const handleInstagramShare = useCallback(async () => {
-    await shareWithSystemSheet('인스타그램 공유를 열지 못해 링크를 복사했어요');
-  }, [shareWithSystemSheet]);
 
   const handleSmsShare = useCallback(async () => {
     if (!inviteLink) {
@@ -565,17 +417,10 @@ const FriendsPage = () => {
       <FriendInviteSheet
         inviteLink={inviteLink}
         isCopied={isLinkCopied}
-        isKakaoReady={isKakaoReady}
         isOpen={isInviteSheetOpen}
         onClose={() => setIsInviteSheetOpen(false)}
         onCopyLink={() => {
           void copyInviteLink();
-        }}
-        onInstagramShare={() => {
-          void handleInstagramShare();
-        }}
-        onKakaoShare={() => {
-          void handleKakaoShare();
         }}
         onSmsShare={() => {
           void handleSmsShare();
