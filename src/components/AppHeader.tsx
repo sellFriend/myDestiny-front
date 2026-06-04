@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, LogOut, Menu, X } from 'lucide-react';
+import logoUrl from '@/assets/my-destiny-logo.png';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/contexts/AuthContext';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
@@ -85,8 +86,8 @@ export function AppHeader({ variant = 'app' }: AppHeaderProps) {
   return (
     <>
       <header className={headerClass}>
-        <Link to={ROUTES.HOME} className="text-lg font-black tracking-tight text-black shrink-0">
-          My Destiny
+        <Link to={ROUTES.HOME} className="shrink-0" aria-label="My Destiny 홈">
+          <img src={logoUrl} alt="My Destiny" className="h-12 w-auto" />
         </Link>
 
         {isLoggedIn && (
