@@ -2,6 +2,7 @@
 // 모든 함수는 공통 래퍼를 벗긴 data 만 반환한다.
 import { apiClient, unwrap } from './client';
 import type {
+  Gender,
   ProfileStatus,
   ProfileVisibility,
 } from './types';
@@ -95,10 +96,13 @@ export const profileApi = {
   create: (body: ProfileCreateRequest) =>
     unwrap<ProfileDetail>(apiClient.post('/api/profiles', body)),
   listMine: () => unwrap<ProfileSummary[]>(apiClient.get('/api/profiles')),
-  listPublic: (registrantId?: string) =>
+  listPublic: (params?: { registrantId?: string; gender?: Gender }) =>
     unwrap<PublicProfile[]>(
       apiClient.get('/api/profiles/public', {
-        params: registrantId ? { registrantId } : undefined,
+        params: {
+          ...(params?.registrantId ? { registrantId: params.registrantId } : {}),
+          ...(params?.gender ? { gender: params.gender } : {}),
+        },
       }),
     ),
   get: (id: string) => unwrap<ProfileDetail>(apiClient.get(`/api/profiles/${id}`)),
