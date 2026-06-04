@@ -3,7 +3,6 @@ import { AnimatePresence, motion, useDragControls } from 'framer-motion';
 import {
   Check,
   Copy,
-  Instagram,
   MessageCircle,
   MoreHorizontal,
   X,
@@ -12,12 +11,9 @@ import {
 interface FriendInviteSheetProps {
   inviteLink: string;
   isCopied: boolean;
-  isKakaoReady: boolean;
   isOpen: boolean;
   onClose: () => void;
   onCopyLink: () => void;
-  onInstagramShare: () => void;
-  onKakaoShare: () => void;
   onSmsShare: () => void;
   onSystemShare: () => void;
 }
@@ -38,7 +34,7 @@ function ChannelButton({ icon, label, onClick }: ChannelButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-1 flex-col items-center gap-2 rounded-2xl py-2 transition-colors active:bg-black/[0.04]"
+      className="flex w-24 flex-none flex-col items-center gap-2 rounded-2xl py-2 transition-colors active:bg-black/[0.04]"
     >
       <span className="flex h-14 w-14 items-center justify-center rounded-full">
         {icon}
@@ -51,12 +47,9 @@ function ChannelButton({ icon, label, onClick }: ChannelButtonProps) {
 export function FriendInviteSheet({
   inviteLink,
   isCopied,
-  isKakaoReady,
   isOpen,
   onClose,
   onCopyLink,
-  onInstagramShare,
-  onKakaoShare,
   onSmsShare,
   onSystemShare,
 }: FriendInviteSheetProps) {
@@ -134,7 +127,7 @@ export function FriendInviteSheet({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="-mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-black/30 transition-colors hover:bg-black/5 hover:text-black/60"
+                    className="-mr-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-black/30 transition-colors hover:bg-black/5 hover:text-black/60"
                     aria-label="닫기"
                   >
                     <X className="h-5 w-5" />
@@ -169,32 +162,14 @@ export function FriendInviteSheet({
                   </span>
                 </button>
 
-                {/* 공유 채널 — 가장 많이 쓰는 카카오톡을 앞에 배치(Serial Position) */}
-                <div className="mt-5 flex items-stretch gap-1">
-                  <ChannelButton
-                    label="카카오톡"
-                    onClick={onKakaoShare}
-                    icon={
-                      <span className="flex h-full w-full items-center justify-center rounded-full bg-[#FEE500]">
-                        <MessageCircle className="h-6 w-6 fill-black text-black" />
-                      </span>
-                    }
-                  />
+                {/* 공유 채널 — 메시지·더보기 */}
+                <div className="mt-5 flex justify-center gap-4">
                   <ChannelButton
                     label="메시지"
                     onClick={onSmsShare}
                     icon={
                       <span className="flex h-full w-full items-center justify-center rounded-full bg-black/[0.06]">
                         <MessageCircle className="h-6 w-6 text-black/70" />
-                      </span>
-                    }
-                  />
-                  <ChannelButton
-                    label="인스타 DM"
-                    onClick={onInstagramShare}
-                    icon={
-                      <span className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-[#feda75] via-[#d62976] to-[#4f5bd5]">
-                        <Instagram className="h-6 w-6 text-white" />
                       </span>
                     }
                   />
@@ -208,12 +183,6 @@ export function FriendInviteSheet({
                     }
                   />
                 </div>
-
-                {!isKakaoReady && (
-                  <p className="mt-4 text-center text-xs text-black/35">
-                    카카오톡 공유가 안 되면 링크를 복사해 보내주세요.
-                  </p>
-                )}
               </div>
             </motion.div>
           </div>

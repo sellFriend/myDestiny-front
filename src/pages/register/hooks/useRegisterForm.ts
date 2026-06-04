@@ -4,6 +4,7 @@ export interface RegisterFormData {
   photoPreview: string;
   name: string;
   age: string;
+  gender: 'male' | 'female' | null;
   isStudent: boolean | null;
   school: string;
   major: string;
@@ -20,6 +21,7 @@ const INITIAL_FORM: RegisterFormData = {
   photoPreview: '',
   name: '',
   age: '',
+  gender: null,
   isStudent: null,
   school: '',
   major: '',

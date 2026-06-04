@@ -184,10 +184,11 @@ const RegisterPage = () => {
   // 각 스텝의 하위 입력 단계별 유효성 (배열 길이 = 그 스텝의 단계 수, [i]=i번째 단계 입력이 완료됐는지)
   const stageValidators = (s: number): boolean[] => {
     switch (s) {
-      case 2: // 기본 정보: 이름 → 나이
+      case 2: // 기본 정보: 이름 → 나이 → 성별
         return [
           form.name.trim().length > 0,
           form.age.trim().length > 0 && Number(form.age) >= 19,
+          form.gender !== null,
         ];
       case 3: // 소속: 학생 여부 → 학교·학과 / 직업
         if (form.isStudent === null) return [false];
@@ -269,7 +270,7 @@ const RegisterPage = () => {
           className="flex items-center gap-2 text-sm text-black/40 hover:text-black transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          madam
+          My Destiny
         </Link>
 
         <div className="flex items-center gap-1">
@@ -359,10 +360,38 @@ const RegisterPage = () => {
               </StepWrapper>
             )}
 
-            {/* Step 2: 기본 정보 — "다음"을 누르면 이름 위로 나이가 쌓여 등장 */}
+            {/* Step 2: 기본 정보 — "다음"을 누르면 이름 위로 나이 → 성별이 순서대로 쌓여 등장 */}
             {step === 2 && (
               <StepWrapper title="기본 정보를 알려주세요">
                 <div className="flex flex-col gap-6">
+                  <StackReveal
+                    show={revealStage >= 2}
+                    fieldKey="gender"
+                    label="성별"
+                    border={false}
+                  >
+                    <div className="flex gap-4">
+                      {(
+                        [
+                          { label: "여성", value: "female" },
+                          { label: "남성", value: "male" },
+                        ] as const
+                      ).map(({ label, value }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => updateField("gender", value)}
+                          className={`flex-1 py-5 rounded-block text-sm font-semibold border-2 transition-all ${
+                            form.gender === value
+                              ? "bg-black text-white border-black"
+                              : "border-black/10 text-black/60 hover:border-black/30"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </StackReveal>
                   <StackReveal
                     show={revealStage >= 1}
                     fieldKey="age"
@@ -839,6 +868,10 @@ function ConfirmSubmitModal({
   const rows: { label: string; value: string }[] = [
     { label: "이름", value: form.name },
     { label: "나이", value: form.age ? `${form.age}세` : "" },
+    {
+      label: "성별",
+      value: form.gender === "female" ? "여성" : form.gender === "male" ? "남성" : "",
+    },
     { label: form.isStudent ? "학교 · 학과" : "직업", value: occupationLine },
     { label: "MBTI", value: form.mbti },
     { label: "취미", value: form.hobbies.join(", ") },
