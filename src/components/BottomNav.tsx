@@ -42,14 +42,14 @@ export function BottomNav() {
             >
               <span className="relative">
                 <Icon
-                  className={`h-7 w-7 transition-colors ${active ? 'text-black' : 'text-black/35'}`}
-                  strokeWidth={active ? 2.4 : 1.9}
+                  className={`h-6 w-6 transition-colors ${active ? 'text-black' : 'text-black/30'}`}
+                  strokeWidth={active ? 2 : 1.6}
                 />
               </span>
 
               <span
                 className={`text-[13px] transition-colors ${
-                  active ? 'font-bold text-black' : 'font-medium text-black/40'
+                  active ? 'font-semibold text-black' : 'font-medium text-black/40'
                 }`}
               >
                 {label}
