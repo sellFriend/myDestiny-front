@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Send } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Check, Send, X } from 'lucide-react';
 import { type Profile } from '@/pages/explore/hooks/useSwipeCards';
+import { type Friend } from '@/pages/friends/components/FriendCard';
+import { useFriends } from '@/pages/friends/hooks/useFriends';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginModal } from '@/components/LoginModal';
 
 interface DetailModalProps {
   profile: Profile;
   onClose: () => void;
-  onContactRequest: (profile: Profile) => void;
 }
 
 const PHOTO_GRADIENTS: Record<string, string> = {
@@ -20,11 +21,34 @@ const PHOTO_GRADIENTS: Record<string, string> = {
   'bg-pastel-pink': 'from-[#e87aab]/50 to-[#e87aab]/20',
 };
 
-export function DetailModal({ profile, onClose, onContactRequest }: DetailModalProps) {
+// 이름 영역 포인트 틴트 — 내 친구 상세와 동일 톤(어휘 통일)
+const ACCENT_TINTS: Record<string, string> = {
+  'bg-pastel-lime': 'bg-[#ceff6e]/20',
+  'bg-pastel-lilac': 'bg-[#c5b8ff]/20',
+  'bg-pastel-mint': 'bg-[#b8ffe5]/25',
+  'bg-pastel-coral': 'bg-[#ff8b7b]/15',
+  'bg-pastel-cream': 'bg-[#fff6d3]/35',
+  'bg-pastel-pink': 'bg-[#ffb8d0]/20',
+};
+
+/** 드롭다운에 보여줄 친구 한 줄 표기: "이름, 나이 · 직업/학교" */
+function friendOptionLabel(f: Friend) {
+  const job = f.isStudent ? [f.school, f.major].filter(Boolean).join(' · ') : f.occupation;
+  return job ? `${f.name}, ${f.age} · ${job}` : `${f.name}, ${f.age}`;
+}
+
+export function DetailModal({ profile, onClose }: DetailModalProps) {
   const { isLoggedIn } = useAuth();
+  const { friends } = useFriends(isLoggedIn);
+  const registeredFriends = friends.filter((f) => f.status === 'approved');
+
   const [showLogin, setShowLogin] = useState(false);
+  const [view, setView] = useState<'detail' | 'request' | 'sent'>('detail');
+  const [selectedFriendId, setSelectedFriendId] = useState('');
+  const [message, setMessage] = useState('');
 
   const gradient = PHOTO_GRADIENTS[profile.cardColor] ?? 'from-black/20 to-black/5';
+  const accentTint = ACCENT_TINTS[profile.cardColor] ?? 'bg-black/[0.03]';
 
   const occupationLine = profile.isStudent
     ? `${profile.school} · ${profile.major}`
@@ -35,13 +59,31 @@ export function DetailModal({ profile, onClose, onContactRequest }: DetailModalP
       setShowLogin(true);
       return;
     }
-    onContactRequest(profile);
+    // 웹·앱 모두 콘텐츠 영역을 폼으로 인라인 전환한다.
+    setView('request');
   };
+
+  const handleSend = () => {
+    if (!selectedFriendId) return;
+    setView('sent');
+  };
+
+  const viewAnim = {
+    initial: { opacity: 0, scale: 0.98 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.98 },
+    transition: { duration: 0.18, ease: 'easeOut' as const },
+  };
+
+  const primaryBtn =
+    'flex items-center justify-center gap-2 rounded-pill bg-black py-3.5 text-sm font-bold text-white transition-all hover:bg-black/85 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-30';
+  const ghostBtn =
+    'flex items-center justify-center gap-2 rounded-pill bg-black/[0.05] py-3.5 text-sm font-semibold text-black/60 transition-colors hover:bg-black/[0.09] hover:text-black/80';
 
   return (
     <>
       <motion.div
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -49,67 +91,192 @@ export function DetailModal({ profile, onClose, onContactRequest }: DetailModalP
         onClick={onClose}
       >
         <motion.div
-          className="w-full max-w-sm bg-white rounded-block overflow-hidden max-h-[90vh] flex flex-col"
+          className="relative flex max-h-[90vh] w-full max-w-sm flex-col overflow-hidden rounded-block bg-white sm:h-[72vh] sm:max-h-[600px] sm:max-w-4xl sm:flex-row sm:shadow-2xl"
           initial={{ y: 60, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 60, opacity: 0 }}
-          transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+          transition={{ type: 'spring', stiffness: 360, damping: 40 }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Photo header */}
-          <div className={`${profile.cardColor} relative flex-shrink-0`}>
-            <div className={`h-36 bg-gradient-to-br ${gradient} flex items-center justify-center`}>
-              <span className="text-6xl font-black text-white/60">{profile.name.charAt(0)}</span>
-            </div>
+          {/* 닫기 — 사진 위(모바일)·흰 배경(웹) 모두 보이도록 반응형 스타일 */}
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-3.5 top-3.5 z-30 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-colors bg-black/40 text-white hover:bg-black/55 sm:bg-black/[0.06] sm:text-black/55 sm:hover:bg-black/10 sm:hover:text-black/80"
+            aria-label="닫기"
+          >
+            <X className="h-4 w-4" />
+          </button>
 
-            <div className="px-6 pb-5 pt-4">
-              <div className="flex items-baseline gap-2">
-                <h2 className="text-2xl font-black text-black">{profile.name}</h2>
-                <span className="text-base font-bold text-black/50">{profile.age}세</span>
+          {/* Photo column — 웹에선 좌측 절반을 채우는 큰 사진 영역 */}
+          <div className="relative flex-shrink-0 sm:w-1/2">
+            {profile.photo ? (
+              <img
+                src={profile.photo}
+                alt={profile.name}
+                className="h-52 w-full object-cover sm:h-full"
+              />
+            ) : (
+              <div
+                className={`flex h-52 items-center justify-center bg-gradient-to-br ${gradient} sm:h-full`}
+              >
+                <span className="text-7xl font-black text-white/60 select-none">
+                  {profile.name.charAt(0)}
+                </span>
               </div>
-              <p className="text-sm text-black/50 mt-0.5 font-medium">{occupationLine}</p>
-            </div>
+            )}
           </div>
 
-          {/* Details */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-5">
-            <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-black/30 mb-2">MBTI</p>
-              <span className="px-3 py-1.5 bg-black text-white text-sm font-bold rounded-pill">
-                {profile.mbti}
-              </span>
-            </div>
+          {/* Content column — 프로필 보기 ↔ 연락 요청 폼을 인라인 전환 */}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <AnimatePresence mode="wait" initial={false}>
+              {view === 'request' ? (
+                <motion.div key="request" className="flex min-h-0 flex-1 flex-col" {...viewAnim}>
+                  <div className="flex-shrink-0 border-b border-black/5 px-6 pb-4 pt-6">
+                    <p className="font-mono text-[10px] uppercase tracking-widest text-black/35">
+                      연락 요청
+                    </p>
+                    <p className="mt-1 text-base font-bold text-black">
+                      {profile.name}님에게 내 친구를 소개해요
+                    </p>
+                  </div>
 
-            <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-black/30 mb-2">취미</p>
-              <div className="flex flex-wrap gap-2">
-                {profile.hobbies.map((h) => (
-                  <span
-                    key={h}
-                    className="px-3 py-1.5 bg-black/5 text-black/70 text-sm rounded-pill border border-black/10"
+                  <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6 sm:min-h-0">
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-black/40">
+                        소개할 내 친구
+                      </label>
+                      {registeredFriends.length > 0 ? (
+                        <select
+                          value={selectedFriendId}
+                          onChange={(e) => setSelectedFriendId(e.target.value)}
+                          className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black focus:border-black/30 focus:outline-none"
+                        >
+                          <option value="">친구를 선택해주세요</option>
+                          {registeredFriends.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {friendOptionLabel(f)}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="rounded-xl border border-black/10 bg-black/[0.02] px-4 py-3 text-sm leading-relaxed text-black/45">
+                          아직 등록된 친구가 없어요. 친구를 먼저 등록해주세요.
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-black/40">
+                        한마디 <span className="text-black/25">(선택)</span>
+                      </label>
+                      <textarea
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="어떤 점이 잘 어울릴지 적어주세요"
+                        rows={3}
+                        className="w-full resize-none rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black focus:border-black/30 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-shrink-0 gap-2 border-t border-black/5 px-6 py-4">
+                    <button
+                      type="button"
+                      onClick={() => setView('detail')}
+                      className={`${ghostBtn} w-24 shrink-0`}
+                    >
+                      이전
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSend}
+                      disabled={!selectedFriendId}
+                      className={`${primaryBtn} flex-1`}
+                    >
+                      <Send className="h-4 w-4" />
+                      보내기
+                    </button>
+                  </div>
+                </motion.div>
+              ) : view === 'sent' ? (
+                <motion.div
+                  key="sent"
+                  className="flex min-h-0 flex-1 flex-col items-center justify-center px-8 py-10 text-center"
+                  {...viewAnim}
+                >
+                  <motion.div
+                    className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-pastel-lime"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 20, delay: 0.05 }}
                   >
-                    {h}
-                  </span>
-                ))}
-              </div>
-            </div>
+                    <Check className="h-8 w-8 text-black" strokeWidth={3} />
+                  </motion.div>
+                  <p className="mb-2 text-lg font-black text-black">요청을 보냈어요</p>
+                  <p className="mb-6 text-sm leading-relaxed text-black/50">
+                    상대 마담이 수락하면
+                    <br />
+                    서로의 연락처를 주고받아요.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-pill bg-black px-8 py-3 text-sm font-bold text-white transition-colors hover:bg-black/85"
+                  >
+                    확인
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div key="detail" className="flex min-h-0 flex-1 flex-col" {...viewAnim}>
+                  {/* Identity header */}
+                  <div className={`${accentTint} flex-shrink-0 border-b border-black/5 px-6 pb-5 pt-6`}>
+                    <div className="flex items-baseline gap-2">
+                      <h2 className="text-2xl font-black text-black sm:text-[1.75rem]">{profile.name}</h2>
+                      <span className="text-base font-bold text-black/45">{profile.age}세</span>
+                    </div>
+                    <p className="mt-1 text-sm font-medium text-black/55">{occupationLine}</p>
+                  </div>
 
-            <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-black/30 mb-2">소개글</p>
-              <p className="text-sm text-black/65 leading-relaxed">{profile.intro}</p>
-            </div>
-          </div>
+                  {/* Details */}
+                  <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6 sm:min-h-0">
+                    <div>
+                      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-black/35">MBTI</p>
+                      <span className="rounded-pill bg-black px-3 py-1.5 text-sm font-bold text-white">
+                        {profile.mbti}
+                      </span>
+                    </div>
 
-          {/* CTA */}
-          <div className="px-6 py-5 border-t border-black/5 flex-shrink-0">
-            <button
-              type="button"
-              onClick={handleContactRequest}
-              className="w-full flex items-center justify-center gap-2 py-3.5 bg-black text-white text-sm font-semibold rounded-pill hover:bg-black/80 transition-all"
-            >
-              <Send className="w-4 h-4" />
-              연락 요청 보내기
-            </button>
+                    <div>
+                      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-black/35">취미</p>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.hobbies.map((h) => (
+                          <span
+                            key={h}
+                            className="rounded-pill border border-black/10 bg-black/5 px-3 py-1.5 text-sm text-black/70"
+                          >
+                            {h}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-black/35">소개글</p>
+                      <p className="text-sm leading-relaxed text-black/65">{profile.intro}</p>
+                    </div>
+                  </div>
+
+                  {/* CTA */}
+                  <div className="flex-shrink-0 border-t border-black/5 px-6 py-5">
+                    <button type="button" onClick={handleContactRequest} className={`${primaryBtn} w-full`}>
+                      <Send className="h-4 w-4" />
+                      연락 요청 보내기
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
       </motion.div>

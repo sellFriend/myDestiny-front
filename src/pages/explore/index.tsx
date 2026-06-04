@@ -8,7 +8,6 @@ import {
 } from "@/pages/explore/hooks/useSwipeCards";
 import { SwipeCardStack } from "@/pages/explore/components/SwipeCardStack";
 import { DetailModal } from "@/pages/explore/components/DetailModal";
-import { ContactRequestModal } from "@/pages/explore/components/ContactRequestModal";
 import { LoginModal } from "@/components/LoginModal";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -56,7 +55,6 @@ const ExplorePage = () => {
     refetch,
   } = useSwipeCards(isLoggedIn);
 
-  const [requestProfile, setRequestProfile] = useState<Profile | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleCardClick = (profile: Profile) => {
@@ -65,11 +63,6 @@ const ExplorePage = () => {
       return;
     }
     openDetail(profile);
-  };
-
-  const handleContactRequest = (profile: Profile) => {
-    closeDetail();
-    setRequestProfile(profile);
   };
 
   return (
@@ -145,20 +138,7 @@ const ExplorePage = () => {
 
       <AnimatePresence>
         {selectedProfile && (
-          <DetailModal
-            profile={selectedProfile}
-            onClose={closeDetail}
-            onContactRequest={handleContactRequest}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {requestProfile && (
-          <ContactRequestModal
-            profile={requestProfile}
-            onClose={() => setRequestProfile(null)}
-          />
+          <DetailModal profile={selectedProfile} onClose={closeDetail} />
         )}
       </AnimatePresence>
 

@@ -2,11 +2,15 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Send, Check } from 'lucide-react';
 import { type Profile } from '@/pages/explore/hooks/useSwipeCards';
+import { type Friend } from '@/pages/friends/components/FriendCard';
+import { useFriends } from '@/pages/friends/hooks/useFriends';
+import { useAuth } from '@/contexts/AuthContext';
 
-const MY_FRIENDS = [
-  { id: 'f1', name: '오민수, 28 · 회계사' },
-  { id: 'f2', name: '정다은, 25 · 간호사' },
-];
+/** 드롭다운에 보여줄 친구 한 줄 표기: "이름, 나이 · 직업/학교" */
+function friendOptionLabel(f: Friend) {
+  const job = f.isStudent ? [f.school, f.major].filter(Boolean).join(' · ') : f.occupation;
+  return job ? `${f.name}, ${f.age} · ${job}` : `${f.name}, ${f.age}`;
+}
 
 interface ContactRequestModalProps {
   profile: Profile;
@@ -14,6 +18,10 @@ interface ContactRequestModalProps {
 }
 
 export function ContactRequestModal({ profile, onClose }: ContactRequestModalProps) {
+  const { isLoggedIn } = useAuth();
+  const { friends } = useFriends(isLoggedIn);
+  const registeredFriends = friends.filter((f) => f.status === 'approved');
+
   const [selectedFriendId, setSelectedFriendId] = useState('');
   const [message, setMessage] = useState('');
   const [isSent, setIsSent] = useState(false);
@@ -94,16 +102,24 @@ export function ContactRequestModal({ profile, onClose }: ContactRequestModalPro
                   <label className="block text-xs font-semibold text-black/40 uppercase tracking-widest mb-2">
                     소개할 내 친구
                   </label>
-                  <select
-                    value={selectedFriendId}
-                    onChange={(e) => setSelectedFriendId(e.target.value)}
-                    className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm text-black bg-white focus:outline-none focus:border-black/30"
-                  >
-                    <option value="">친구를 선택하세요</option>
-                    {MY_FRIENDS.map((f) => (
-                      <option key={f.id} value={f.id}>{f.name}</option>
-                    ))}
-                  </select>
+                  {registeredFriends.length > 0 ? (
+                    <select
+                      value={selectedFriendId}
+                      onChange={(e) => setSelectedFriendId(e.target.value)}
+                      className="w-full border border-black/10 rounded-xl px-4 py-3 text-sm text-black bg-white focus:outline-none focus:border-black/30"
+                    >
+                      <option value="">친구를 선택해주세요</option>
+                      {registeredFriends.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {friendOptionLabel(f)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="rounded-xl border border-black/10 bg-black/[0.02] px-4 py-3 text-sm leading-relaxed text-black/45">
+                      아직 등록된 친구가 없어요. 친구를 먼저 등록해주세요.
+                    </p>
+                  )}
                 </div>
 
                 <div>
