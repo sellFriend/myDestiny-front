@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { motion, useAnimationControls, useDragControls, type PanInfo } from 'framer-motion';
 import { Bell, BellOff, Check, Pencil, Trash2, X } from 'lucide-react';
 import { type Friend } from '@/pages/friends/components/FriendCard';
+
+/** 아래로 끌어 닫는 임계값 — 거리(px) 또는 속도 */
+const DRAG_CLOSE_DISTANCE = 110;
+const DRAG_CLOSE_VELOCITY = 600;
+const SHEET_SPRING = { type: 'spring', stiffness: 360, damping: 40 } as const;
 
 interface FriendDetailModalProps {
   friend: Friend;
@@ -48,6 +54,65 @@ export function FriendDetailModal({
   // 폼 재수정 요청 후 모달 안에 남기는 인라인 흔적 (토스트와 이중 피드백)
   const [reformRequested, setReformRequested] = useState(false);
 
+  // ── 모바일 전체화면 시트 드래그 제어 ─────────────────────────────────
+  const [viewportH, setViewportH] = useState(() =>
+    typeof window !== 'undefined' ? window.innerHeight : 800,
+  );
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)').matches : true,
+  );
+  const controls = useAnimationControls();
+  const dragControls = useDragControls();
+
+  // 시트가 열린 동안 배경 스크롤 잠금
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  // 뷰포트 크기 / 모바일 여부 추적 (회전·리사이즈 대응)
+  useEffect(() => {
+    const onResize = () => {
+      setViewportH(window.innerHeight);
+      setIsMobile(window.matchMedia('(max-width: 639px)').matches);
+    };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // 최초 마운트 시 아래에서 전체화면으로 올라오는 애니메이션 (데스크탑은 변환 없음)
+  // StrictMode 이중 실행에도 안전하도록 가드/중단 없이 매번 목표로 애니메이트한다.
+  useEffect(() => {
+    if (isMobile) {
+      void controls.start({ y: 0, transition: SHEET_SPRING });
+    } else {
+      controls.set({ y: 0 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const closeSheet = () => {
+    if (!isMobile) {
+      onClose();
+      return;
+    }
+    void controls
+      .start({ y: viewportH, transition: { duration: 0.22, ease: 'easeIn' } })
+      .then(onClose);
+  };
+
+  // 아래로 충분히 끌면 닫고, 아니면 전체화면으로 되돌린다.
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.y > DRAG_CLOSE_DISTANCE || info.velocity.y > DRAG_CLOSE_VELOCITY) {
+      closeSheet();
+    } else {
+      void controls.start({ y: 0, transition: SHEET_SPRING });
+    }
+  };
+
   const fallbackGradient = FALLBACK_GRADIENTS[friend.cardColor] ?? 'from-black/15 to-black/5';
   const accentTint = ACCENT_TINTS[friend.cardColor] ?? 'bg-black/[0.03]';
 
@@ -76,29 +141,48 @@ export function FriendDetailModal({
   return (
     <>
       <div
-        className="fixed inset-0 z-50 flex justify-center bg-black/50 sm:items-center sm:p-6"
-        onClick={onClose}
+        className="fixed inset-0 z-50 bg-black/50 sm:flex sm:items-center sm:justify-center sm:p-6"
+        onClick={closeSheet}
       >
-        <div
-          className="relative flex h-full w-full flex-col overflow-y-auto bg-white sm:h-[72vh] sm:max-h-[600px] sm:max-w-4xl sm:flex-row sm:overflow-hidden sm:rounded-block sm:shadow-2xl"
+        <motion.div
+          initial={isMobile ? { y: viewportH } : { y: 0 }}
+          animate={controls}
+          drag={isMobile ? 'y' : false}
+          dragControls={dragControls}
+          dragListener={false}
+          dragConstraints={{ top: 0, bottom: viewportH }}
+          dragElastic={0.05}
+          onDragEnd={handleDragEnd}
           onClick={(e) => e.stopPropagation()}
+          className="absolute inset-x-0 top-0 flex h-[100dvh] flex-col overflow-hidden rounded-t-[1.75rem] bg-white shadow-[0_-8px_40px_rgba(0,0,0,0.12)] sm:relative sm:h-[72vh] sm:max-h-[600px] sm:w-full sm:max-w-4xl sm:flex-row sm:rounded-block sm:shadow-2xl"
         >
+          {/* 닫기 버튼 — 데스크탑 전용(모바일은 그래버 끌어내리기로 닫음) */}
           <button
             type="button"
-            onClick={onClose}
-            className="absolute top-3.5 right-3.5 z-20 flex h-8 w-8 items-center justify-center rounded-full backdrop-blur-sm transition-colors bg-black/40 text-white hover:bg-black/55 sm:bg-black/[0.06] sm:text-black/55 sm:hover:bg-black/10 sm:hover:text-black/80"
+            onClick={closeSheet}
+            className="absolute right-3.5 top-3.5 z-30 hidden h-8 w-8 items-center justify-center rounded-full bg-black/[0.05] text-black/45 transition-colors hover:bg-black/10 hover:text-black/80 sm:flex"
             aria-label="닫기"
           >
             <X className="h-4 w-4" />
           </button>
 
-          {/* Photo column */}
-          <div className="relative flex-shrink-0 bg-black/5 sm:w-1/2">
+          {/* 그래버 — 아래로 끌면 닫힘 (모바일 전용) */}
+          <div
+            className="flex shrink-0 cursor-grab touch-none justify-center pb-2 pt-3 active:cursor-grabbing sm:hidden"
+            onPointerDown={(event) => dragControls.start(event)}
+          >
+            <div className="h-1 w-10 rounded-full bg-black/15" />
+          </div>
+
+          {/* 본문 래퍼 — 모바일: 사진 고정 + 정보 스크롤 + 버튼 하단 고정 / 데스크탑: 좌우 분할 */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row sm:overflow-visible">
+            {/* Photo column */}
+            <div className="relative flex-shrink-0 bg-black/5 sm:w-1/2">
             {friend.photo ? (
               <button
                 type="button"
                 onClick={() => setIsImageOpen(true)}
-                className="block h-[58vh] w-full cursor-zoom-in sm:h-full"
+                className="block h-[34vh] w-full cursor-zoom-in sm:h-full"
                 aria-label="사진 크게 보기"
               >
                 <img
@@ -109,7 +193,7 @@ export function FriendDetailModal({
               </button>
             ) : (
               <div
-                className={`flex h-[58vh] items-center justify-center bg-gradient-to-br ${fallbackGradient} sm:h-full`}
+                className={`flex h-[34vh] items-center justify-center bg-gradient-to-br ${fallbackGradient} sm:h-full`}
               >
                 <span className="text-8xl font-black text-white/70 select-none">
                   {friend.name.charAt(0)}
@@ -131,9 +215,9 @@ export function FriendDetailModal({
           </div>
 
           {/* Content column */}
-          <div className="flex flex-col sm:min-h-0 sm:flex-1">
+          <div className="flex min-h-0 flex-1 flex-col">
             {/* Identity header (subtle accent) */}
-            <div className={`${accentTint} flex-shrink-0 border-b border-black/5 px-6 pt-6 pb-5`}>
+            <div className={`${accentTint} flex-shrink-0 border-b border-black/5 px-6 pt-5 pb-4 sm:pt-6 sm:pb-5`}>
               <div className="flex items-baseline gap-2">
                 <h2 className="text-3xl font-black tracking-tight text-black sm:text-[2rem]">
                   {friend.name}
@@ -146,7 +230,7 @@ export function FriendDetailModal({
             </div>
 
             {/* Details */}
-            <div className="px-6 py-6 space-y-6 sm:flex-1 sm:overflow-y-auto">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5 sm:space-y-6 sm:py-6">
               {/* 상태 맥락 안내 */}
               {isPending && (
                 <p className="rounded-2xl bg-black/[0.04] px-4 py-3 text-sm leading-relaxed text-black/55">
@@ -193,7 +277,7 @@ export function FriendDetailModal({
             </div>
 
             {/* CTA — 상태별로 핵심 행동을 다르게 (Von Restorff: 가장 중요한 동작 강조) */}
-            <div className="flex-shrink-0 space-y-3 border-t border-black/5 px-6 py-5">
+            <div className="flex-shrink-0 space-y-3 border-t border-black/5 px-6 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] sm:py-5">
               {/* 폼 재수정 요청 결과 인라인 흔적 (토스트와 이중 피드백) */}
               {reformRequested && (
                 <p className="flex items-center justify-center gap-1.5 text-xs font-medium text-black/45">
@@ -281,7 +365,8 @@ export function FriendDetailModal({
               )}
             </div>
           </div>
-        </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* Image lightbox */}

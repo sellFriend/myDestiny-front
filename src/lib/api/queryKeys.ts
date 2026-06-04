@@ -13,7 +13,8 @@ export const queryKeys = {
 
   profiles: {
     mine: ['profiles', 'mine'] as const,
-    public: (registrantId?: string) => ['profiles', 'public', registrantId ?? 'all'] as const,
+    public: (filters?: { registrantId?: string; gender?: string }) =>
+      ['profiles', 'public', filters?.registrantId ?? 'all', filters?.gender ?? 'all'] as const,
     detail: (id: string) => ['profiles', id] as const,
   },
 

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { profileApi, queryKeys, ApiError, type PublicProfile } from '@/lib/api';
+import { profileApi, queryKeys, ApiError, type Gender, type PublicProfile } from '@/lib/api';
 
 export interface Profile {
   id: string;
@@ -48,6 +49,12 @@ function markTutorialSeen() {
   }
 }
 
+/** URL 쿼리의 gender 값을 허용된 값으로만 좁힌다. (그 외/없음은 무시) */
+function parseGenderParam(raw: string | null): Gender | undefined {
+  if (raw === 'male' || raw === 'female') return raw;
+  return undefined;
+}
+
 /** 콤마/슬래시로 구분된 취미 문자열을 태그 배열로 변환 */
 function parseHobbies(hobby: string | null): string[] {
   if (!hobby) return [];
@@ -82,9 +89,13 @@ function toErrorType(err: unknown): ErrorType {
 }
 
 export function useSwipeCards(enabled = true) {
+  const [searchParams] = useSearchParams();
+  // URL의 ?gender=male|female 를 추천 목록 필터로 그대로 활용한다.
+  const gender = parseGenderParam(searchParams.get('gender'));
+
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: queryKeys.profiles.public(),
-    queryFn: () => profileApi.listPublic(),
+    queryKey: queryKeys.profiles.public({ gender }),
+    queryFn: () => profileApi.listPublic({ gender }),
     enabled,
   });
 

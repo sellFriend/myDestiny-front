@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Bell } from 'lucide-react';
@@ -22,7 +22,25 @@ export function NotificationBell({ enabled }: NotificationBellProps) {
   const { notifications, unreadCount, isLoading, markRead } = useNotifications(enabled);
   const [isOpen, setIsOpen] = useState(false);
   const [reviewId, setReviewId] = useState<string | null>(null);
+  const [panelTop, setPanelTop] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // 패널을 화면(뷰포트) 기준 우측에 고정하되, 세로 위치는 종 버튼 아래로 맞춘다.
+  // 헤더 높이가 바뀌어도 안전하고, 스크롤/리사이즈에도 따라온다.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const update = () => {
+      const el = containerRef.current;
+      if (el) setPanelTop(el.getBoundingClientRect().bottom + 8);
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [isOpen]);
 
   // 패널 바깥 클릭 / ESC 로 닫기
   useEffect(() => {
@@ -86,7 +104,8 @@ export function NotificationBell({ enabled }: NotificationBellProps) {
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              className="absolute right-0 top-full z-[90] mt-2 w-[20rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-block border border-black/10 bg-white shadow-2xl"
+              style={{ top: panelTop }}
+              className="fixed right-2 z-[90] w-[20rem] max-w-[calc(100vw-1rem)] overflow-hidden rounded-block border border-black/10 bg-white shadow-2xl"
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}

@@ -112,9 +112,9 @@ const RequestsPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <AppHeader pendingRequestCount={pendingReceivedCount} />
+      <AppHeader />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-6 sm:py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-5 pt-6 pb-28 sm:pt-8 md:pb-8">
         <h1 className="mb-5 text-xl font-black text-black sm:mb-6">요청함</h1>
 
         {!isLoggedIn ? (

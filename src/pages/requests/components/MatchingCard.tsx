@@ -1,12 +1,11 @@
 import type { MouseEvent } from 'react';
-import { Clock, Heart, Loader2 } from 'lucide-react';
+import { Heart, Loader2 } from 'lucide-react';
 import { MatchingStatus, type MatchingResponse } from '@/lib/api';
 import { ProfileAvatar } from '@/pages/requests/components/ProfileAvatar';
 import {
   formatSince,
   genderTag,
   matchingSides,
-  remainingMeta,
   statusMeta,
   type RequestTab,
 } from '@/pages/requests/utils';
@@ -23,9 +22,14 @@ interface MatchingCardProps {
 
 function Name({ name, gender }: { name: string; gender: string }) {
   return (
-    <span className="inline-flex items-baseline gap-0.5">
-      <span className="font-bold text-black">{name}</span>
-      {gender && <span className="text-xs font-medium text-black/30">{gender}</span>}
+    <span className="inline-flex min-w-0 items-baseline gap-0.5">
+      <span className="truncate font-bold text-black">{name}</span>
+      {/* 성별 태그 — 앱(모바일)에선 공간 절약 위해 숨기고 웹에서만 노출 */}
+      {gender && (
+        <span className="hidden shrink-0 text-xs font-medium text-black/30 md:inline">
+          {gender}
+        </span>
+      )}
     </span>
   );
 }
@@ -53,9 +57,6 @@ export function MatchingCard({
       : variant === 'sent'
         ? `${matching.receiverNickname}님에게 보낸 제안이에요`
         : '두 분의 인연이 이어졌어요';
-
-  const deadline =
-    variant === 'received' && isPending ? remainingMeta(matching.receiverExpiresAt) : null;
 
   const primaryBtn =
     'flex items-center justify-center gap-1.5 rounded-pill bg-black py-3 text-sm font-bold text-white transition-all hover:bg-black/85 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40';
@@ -87,7 +88,7 @@ export function MatchingCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="flex items-center gap-1.5 text-[1.0625rem] leading-snug">
+            <h3 className="flex min-w-0 items-center gap-1.5 text-[1.0625rem] leading-snug">
               <Name name={counterpart.name} gender={genderTag(counterpart.gender)} />
               <Heart
                 className={`h-3.5 w-3.5 shrink-0 ${
@@ -106,9 +107,9 @@ export function MatchingCard({
         </div>
       </div>
 
-      {/* 마담이 남긴 메시지 — 출처를 라벨로 분명히 (clarity) */}
+      {/* 마담 한마디 — 앱(모바일)에선 숨기고 웹(md↑)에서만. 상세에선 항상 노출 */}
       {message && (
-        <div className="mt-3.5 rounded-2xl bg-black/[0.035] px-4 py-3">
+        <div className="mt-3.5 hidden rounded-2xl bg-black/[0.035] px-4 py-3 md:block">
           <p className="mb-0.5 text-[11px] font-semibold text-black/35">
             {matching.requesterNickname === '나'
               ? '내가 남긴 한마디'
@@ -118,21 +119,17 @@ export function MatchingCard({
         </div>
       )}
 
-      {/* 기한 안내 — 24시간 미만이면 코랄로 강조 (goal-gradient) */}
-      {deadline && (
-        <p
-          className={`mt-3.5 flex items-center gap-1.5 text-xs font-medium ${
-            deadline.urgent ? 'text-pastel-coral' : 'text-black/45'
-          }`}
-        >
-          <Clock className="h-3.5 w-3.5" />
-          {deadline.label}
-        </p>
-      )}
-
-      {/* 액션: 긍정 경로(수락)를 더 넓고 진하게 (Von Restorff) */}
+      {/* 액션: 수락/거절을 동일 너비로 균형 — 강조는 채움 vs 고스트로만 (절제된 위계) */}
       {variant === 'received' && isPending ? (
         <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={stop(() => onReject?.(matching.id))}
+            className={`${ghostBtn} flex-1`}
+          >
+            거절
+          </button>
           <button
             type="button"
             disabled={busy}
@@ -141,14 +138,6 @@ export function MatchingCard({
           >
             {busy && <Loader2 className="h-4 w-4 animate-spin" />}
             수락하기
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={stop(() => onReject?.(matching.id))}
-            className={`${ghostBtn} w-24 shrink-0`}
-          >
-            거절
           </button>
         </div>
       ) : variant === 'sent' && isPending ? (

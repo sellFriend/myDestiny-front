@@ -42,11 +42,12 @@ export function SwipeCardStack({
   // API 가 빈 배열을 반환해 더 볼 카드가 없는 경우
   if (!showTutorial && !hasMore && profiles.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center px-6">
-        <p className="text-5xl mb-5">✨</p>
-        <p className="text-xl font-black text-black">모든 카드를 확인했어요</p>
-        <p className="text-sm text-black/40 mt-2">
-          새로운 소개가 등록되면 알려드릴게요
+      <div className="flex h-full flex-col items-center justify-center px-8 text-center">
+        <p className="text-lg font-bold text-black">추천을 모두 둘러봤어요</p>
+        <p className="mt-2 text-sm leading-relaxed text-black/40">
+          새로운 인연이 등록되면
+          <br />
+          다시 보여드릴게요
         </p>
       </div>
     );
