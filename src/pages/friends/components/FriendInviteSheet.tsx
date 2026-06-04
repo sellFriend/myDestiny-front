@@ -5,7 +5,6 @@ import {
   Copy,
   MessageCircle,
   MoreHorizontal,
-  X,
 } from 'lucide-react';
 
 interface FriendInviteSheetProps {
@@ -112,26 +111,15 @@ export function FriendInviteSheet({
               </div>
 
               <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] pt-3">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-[1.4rem] font-bold leading-snug tracking-tight text-black">
-                      친구를 초대해 볼까요?
-                    </h3>
-                    <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-black/50">
-                      링크를 받은 친구가 등록하면
-                      <br />
-                      바로 내 친구로 연결돼요.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="-mr-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-black/30 transition-colors hover:bg-black/5 hover:text-black/60"
-                    aria-label="닫기"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                <div>
+                  <h3 className="text-[1.4rem] font-bold leading-snug tracking-tight text-black">
+                    친구를 초대해 볼까요?
+                  </h3>
+                  <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-black/50">
+                    링크를 받은 친구가 등록하면
+                    <br />
+                    바로 내 친구로 연결돼요.
+                  </p>
                 </div>
 
                 {/* 링크 복사 칩 (Toss 스타일: 가벼운 회색 박스, 한 번에 복사) */}

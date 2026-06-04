@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { motion, useDragControls } from 'framer-motion';
 import { Check, ChevronDown, Clock, Heart, Loader2, X } from 'lucide-react';
 import {
   MatchingStatus,
@@ -19,6 +19,10 @@ import {
   statusMeta,
   type RequestTab,
 } from '@/pages/requests/utils';
+
+/** 시트를 닫히게 하는 드래그 임계값 — 거리(끌어내림) 또는 속도(튕김) (친구 초대 시트와 동일) */
+const DRAG_CLOSE_DISTANCE = 120;
+const DRAG_CLOSE_VELOCITY = 600;
 
 interface MatchingDetailModalProps {
   matching: MatchingResponse;
@@ -142,6 +146,16 @@ export function MatchingDetailModal({
   const isMatched = variant === 'matched';
   // 성사된 인연은 두 사람이 동등하게 중요하므로 내 지인도 기본으로 펼친다.
   const [isMineOpen, setIsMineOpen] = useState(isMatched);
+  const dragControls = useDragControls();
+
+  // 시트가 열린 동안 배경 스크롤 잠금
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   const { status, message } = matching;
   const { counterpart, mine } = matchingSides(matching, variant);
@@ -204,19 +218,29 @@ export function MatchingDetailModal({
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 320, damping: 34 }}
         onClick={(event) => event.stopPropagation()}
+        drag="y"
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0, bottom: 0 }}
+        dragSnapToOrigin
+        onDragEnd={(_, info) => {
+          if (info.offset.y > DRAG_CLOSE_DISTANCE || info.velocity.y > DRAG_CLOSE_VELOCITY) {
+            onClose();
+          }
+        }}
         className="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-[1.5rem] bg-white sm:max-h-[85vh] sm:max-w-md sm:rounded-block sm:shadow-2xl"
       >
-        {/* 헤더: 관계 맥락 + 상태 배지 + 닫기 (Common Region) */}
-        <div className="relative shrink-0 border-b border-black/[0.06] px-6 pb-5 pt-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-black/35 transition-colors hover:bg-black/5 hover:text-black/60"
-            aria-label="닫기"
-          >
-            <X className="h-4 w-4" />
-          </button>
+        {/* 그래버 — 끌어서 시트를 닫는 드래그 핸들 */}
+        <div
+          className="flex shrink-0 cursor-grab touch-none justify-center pb-1 pt-3 active:cursor-grabbing"
+          onPointerDown={(event) => dragControls.start(event)}
+        >
+          <div className="h-1 w-9 rounded-full bg-black/15" />
+        </div>
 
+        {/* 헤더: 관계 맥락 + 상태 배지 (Common Region) */}
+        <div className="relative shrink-0 border-b border-black/[0.06] px-6 pb-5 pt-3">
           <span
             className={`inline-flex rounded-pill px-2.5 py-1 text-[11px] font-semibold ${badge.className}`}
           >
@@ -309,19 +333,19 @@ export function MatchingDetailModal({
             <button
               type="button"
               disabled={busy}
+              onClick={() => onReject?.(matching.id)}
+              className={`${ghostBtn} flex-1`}
+            >
+              거절
+            </button>
+            <button
+              type="button"
+              disabled={busy}
               onClick={() => onAccept?.(matching.id)}
               className={`${primaryBtn} flex-1`}
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               수락하기
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => onReject?.(matching.id)}
-              className={`${ghostBtn} w-28 shrink-0`}
-            >
-              거절
             </button>
           </div>
         ) : variant === 'sent' && isPending ? (
