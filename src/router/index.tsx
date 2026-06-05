@@ -51,4 +51,9 @@ export const router = createBrowserRouter([
     path: ROUTES.REGISTER,
     element: withSuspense(<RegisterPage />),
   },
+  {
+    // 친구(B)가 마담 숏링크로 접근하는 폼. madamId 는 제출 시 path variable 로 쓰인다.
+    path: `${ROUTES.FORM}/:madamId`,
+    element: withSuspense(<RegisterPage />),
+  },
 ]);

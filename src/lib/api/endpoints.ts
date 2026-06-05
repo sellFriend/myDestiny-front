@@ -1,6 +1,7 @@
 // 도메인별 API 호출 함수 모음 (mydestiny-api-spec 5장 기준)
 // 모든 함수는 공통 래퍼를 벗긴 data 만 반환한다.
 import { apiClient, unwrap } from './client';
+import { getAccessToken } from './tokenStore';
 import type {
   Gender,
   ProfileStatus,
@@ -13,6 +14,7 @@ import type {
   CardSummary,
   ConsentApproveResponse,
   FollowStatus,
+  FormPhoto,
   FormSubmitRequest,
   FormSubmitResponse,
   InvitationInfo,
@@ -21,6 +23,7 @@ import type {
   MatchingCreateRequest,
   MatchingResponse,
   MeResponse,
+  MyFormResponse,
   NotificationItem,
   PhoneVerifyResponse,
   ProfileCreateRequest,
@@ -67,16 +70,34 @@ export const followApi = {
     unwrap<FollowStatus>(apiClient.get(`/api/users/${userId}/follow-status`)),
 };
 
-// ── 5.5 Form (public, 인증 불필요) ─────────────────────
+// ── 5.5 Form ──────────────────────────────────────────
+// 폼 조회는 public 이지만, 제출은 친구(B) 본인 인증(Bearer)이 필요하다. (폼_인증.pdf 2장)
+// 마담 코드(madamId)는 path, B 의 accessToken 은 Authorization 헤더, 프로필 데이터는 body 로 분리해 전달한다.
 export const formApi = {
-  validate: (token: string) => unwrap<null>(apiClient.get(`/form/${token}`)),
-  submit: (token: string, body: FormSubmitRequest) =>
-    unwrap<FormSubmitResponse>(apiClient.post(`/form/${token}`, body)),
-  uploadPhoto: (token: string, file: File) => {
+  validate: (madamId: string) => unwrap<null>(apiClient.get(`/form/${madamId}`)),
+  submit: (madamId: string, body: FormSubmitRequest) =>
+    unwrap<FormSubmitResponse>(
+      apiClient.post(`/form/${madamId}`, body, {
+        headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
+      }),
+    ),
+  // ── 사진은 제출 응답의 uploadToken 으로 별도 관리한다. (form-photo-guide.md)
+  listPhotos: (uploadToken: string) =>
+    unwrap<FormPhoto[]>(apiClient.get(`/form/${uploadToken}/photos`)),
+  uploadPhoto: (uploadToken: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    return unwrap<string>(
-      apiClient.post(`/form/${token}/photos`, formData, {
+    return unwrap<FormPhoto>(
+      apiClient.post(`/form/${uploadToken}/photos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }),
+    );
+  },
+  replacePhoto: (uploadToken: string, photoId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return unwrap<FormPhoto>(
+      apiClient.put(`/form/${uploadToken}/photos/${photoId}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       }),
     );
@@ -86,6 +107,8 @@ export const formApi = {
 // ── 5.6 Acquaintance ──────────────────────────────────
 export const acquaintanceApi = {
   invite: () => unwrap<InviteLinkResponse>(apiClient.post('/api/acquaintances/invite')),
+  /** 마담 본인의 폼 숏링크 조회 — 친구 추가 시 복사할 formUrl 을 반환한다. */
+  myForm: () => unwrap<MyFormResponse>(apiClient.get('/api/acquaintances/my-form')),
   get: (id: string) => unwrap<AcquaintanceDetail>(apiClient.get(`/api/acquaintances/${id}`)),
   approve: (id: string) => unwrap<null>(apiClient.post(`/api/acquaintances/${id}/approve`)),
   reject: (id: string) => unwrap<null>(apiClient.post(`/api/acquaintances/${id}/reject`)),

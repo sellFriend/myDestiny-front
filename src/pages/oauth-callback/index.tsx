@@ -1,7 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
-import { useAuth } from '@/contexts/AuthContext';
+import {
+  FORM_KAKAO_AUTHED_KEY,
+  POST_LOGIN_REDIRECT_KEY,
+  useAuth,
+} from '@/contexts/AuthContext';
 
 /**
  * 카카오 OAuth2 로그인 후 백엔드가 리다이렉트하는 콜백 화면.
@@ -19,10 +23,19 @@ const OAuthCallbackPage = () => {
 
     const accessToken = searchParams.get('accessToken');
     const refreshToken = searchParams.get('refreshToken');
+    // 카카오 로그인 직후 본인 프로필 사진 URL이 함께 내려온다. (kakao-photo-flow.md 1장)
+    const profileImageUrl = searchParams.get('profileImageUrl');
 
     if (accessToken) {
-      setSession(accessToken, refreshToken);
-      navigate(ROUTES.EXPLORE, { replace: true });
+      setSession(accessToken, refreshToken, profileImageUrl);
+      // 로그인 전에 보던 화면(예: 친구 B의 폼)이 있으면 그곳으로 돌려보낸다.
+      const returnTo = sessionStorage.getItem(POST_LOGIN_REDIRECT_KEY);
+      sessionStorage.removeItem(POST_LOGIN_REDIRECT_KEY);
+      // 폼 진입을 위한 로그인이었다면, 해당 폼은 이번 세션에서 카카오 인증을 마쳤다고 표시한다.
+      if (returnTo?.startsWith(`${ROUTES.FORM}/`)) {
+        sessionStorage.setItem(FORM_KAKAO_AUTHED_KEY, returnTo);
+      }
+      navigate(returnTo ?? ROUTES.EXPLORE, { replace: true });
     } else {
       navigate(ROUTES.LOGIN, { replace: true });
     }

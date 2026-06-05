@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
-import { ROUTES } from '@/constants/routes';
+import { acquaintanceApi } from '@/lib/api';
 import { AppHeader } from '@/components/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { FriendCard, type Friend } from '@/pages/friends/components/FriendCard';
@@ -20,17 +20,10 @@ const FRIEND_TABS: { key: FriendTab; label: string }[] = [
   { key: 'pending', label: '승인 대기' },
 ];
 
-function createInviteToken() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID().replace(/-/g, '').slice(0, 12);
-  }
-
-  return Math.random().toString(36).slice(2, 14);
-}
-
-function createInviteLink() {
-  const token = createInviteToken();
-  return `${window.location.origin}${ROUTES.REGISTER}?token=${token}`;
+/** 마담 본인의 폼 숏링크(formUrl)를 서버에서 받아온다. (폼_인증.pdf 1장) */
+async function fetchInviteLink(): Promise<string> {
+  const { formUrl } = await acquaintanceApi.myForm();
+  return formUrl;
 }
 
 function createSmsUrl(inviteLink: string) {
@@ -89,7 +82,14 @@ const FriendsPage = () => {
   }, []);
 
   const handleAddFriend = useCallback(async () => {
-    const link = createInviteLink();
+    // 숏링크 생성 응답(formUrl)을 받아 복사한다.
+    let link: string;
+    try {
+      link = await fetchInviteLink();
+    } catch {
+      showToast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요.', 4000);
+      return;
+    }
     setInviteLink(link);
 
     // 웹/앱 모두 클립보드에 먼저 복사한다.
@@ -190,10 +190,16 @@ const FriendsPage = () => {
     deleteFriend(id);
   };
 
-  // 폼 재수정 요청: 새 숏링크를 만들어 클립보드에 복사하고, 앱/웹 모두 토스트로만 알린다.
+  // 폼 재수정 요청: 숏링크를 받아 클립보드에 복사하고, 앱/웹 모두 토스트로만 알린다.
   const handleRequestReform = useCallback(
     async (friend: Friend) => {
-      const link = createInviteLink();
+      let link: string;
+      try {
+        link = await fetchInviteLink();
+      } catch {
+        showToast('수정 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요.', 4000);
+        return false;
+      }
       const copied = await writeClipboard(link);
       showToast(
         copied
