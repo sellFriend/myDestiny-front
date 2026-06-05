@@ -3,6 +3,8 @@
 
 const ACCESS_TOKEN_KEY = 'madam_access_token';
 const REFRESH_TOKEN_KEY = 'madam_refresh_token';
+// 카카오 로그인 직후 콜백으로 받은 본인 프로필 사진 URL. (kakao-photo-flow.md 1장)
+const KAKAO_PROFILE_IMAGE_KEY = 'madam_kakao_profile_image';
 
 type TokenListener = (accessToken: string | null) => void;
 
@@ -44,8 +46,18 @@ export function setTokens(accessToken: string | null, refreshToken?: string | nu
   listeners.forEach((listener) => listener(accessToken));
 }
 
+/** 카카오 로그인 직후 받은 본인 프로필 사진 URL (폼 사진 모달 미리보기용) */
+export function getKakaoProfileImage(): string | null {
+  return readItem(KAKAO_PROFILE_IMAGE_KEY);
+}
+
+export function setKakaoProfileImage(url: string | null) {
+  writeItem(KAKAO_PROFILE_IMAGE_KEY, url);
+}
+
 export function clearTokens() {
   setTokens(null, null);
+  writeItem(KAKAO_PROFILE_IMAGE_KEY, null);
 }
 
 export function hasAccessToken(): boolean {

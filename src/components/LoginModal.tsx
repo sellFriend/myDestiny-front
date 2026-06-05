@@ -33,7 +33,7 @@ export function LoginModal({ message, onClose }: LoginModalProps) {
 
         <button
           type="button"
-          onClick={loginWithKakao}
+          onClick={() => loginWithKakao()}
           className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-pill text-sm font-semibold text-[#191600] bg-[#FEE500] hover:brightness-95 transition-[filter]${message ? '' : ' mt-2'}`}
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">

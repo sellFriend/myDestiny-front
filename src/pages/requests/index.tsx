@@ -123,7 +123,7 @@ const RequestsPage = () => {
             <p className="mb-6 text-sm text-black/40">받은 요청과 성사된 인연을 확인해보세요</p>
             <button
               type="button"
-              onClick={loginWithKakao}
+              onClick={() => loginWithKakao()}
               className="rounded-pill bg-[#FEE500] px-6 py-3 text-sm font-semibold text-[#191600] transition-[filter] hover:brightness-95"
             >
               카카오로 시작하기

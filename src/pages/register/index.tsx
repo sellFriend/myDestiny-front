@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -8,9 +8,20 @@ import {
   MessageCircle,
   X,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
-import { useRegisterForm } from "@/pages/register/hooks/useRegisterForm";
+import { FORM_KAKAO_AUTHED_KEY, useAuth } from "@/contexts/AuthContext";
+import {
+  ApiError,
+  formApi,
+  getKakaoProfileImage,
+  hasAccessToken,
+} from "@/lib/api";
+import type { FormSubmitRequest } from "@/lib/api";
+import {
+  useRegisterForm,
+  type RegisterFormData,
+} from "@/pages/register/hooks/useRegisterForm";
 import { CardPreview } from "@/pages/register/components/CardPreview";
 
 // MBTI를 16지선다 대신 4개의 2지선다 축으로 분해 (Hick's Law)
@@ -93,6 +104,34 @@ function isValidPhone(digits: string): boolean {
   return /^01\d{8,9}$/.test(digits);
 }
 
+// 사진 업로드 제약 (form-photo-guide.md)
+const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
+const PHOTO_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const PHOTO_MAX_BYTES = 10 * 1024 * 1024; // 10MB
+
+/** 폼 입력값을 폼 제출 요청 body 로 변환한다. (마담 코드/토큰은 path·헤더로 분리) */
+function toFormSubmitRequest(form: RegisterFormData): FormSubmitRequest {
+  const job = form.isStudent
+    ? [form.school, form.major].filter(Boolean).join(" ")
+    : form.occupation;
+
+  return {
+    // 카카오 프사 사용 여부는 모달에서 받은 명시적 선택값을 그대로 보낸다. (kakao-photo-flow.md 2장)
+    useKakaoPhoto: form.useKakaoPhoto,
+    name: form.name.trim(),
+    age: Number(form.age),
+    // 서버는 대문자 enum 을 받는다. (male → MALE)
+    gender: form.gender ? (form.gender === "male" ? "MALE" : "FEMALE") : null,
+    job: job.trim() || null,
+    intro: form.intro.trim() || null,
+    mbti: form.mbti || null,
+    hobbies: form.hobbies.length > 0 ? form.hobbies.join(", ") : null,
+    phoneNumber: form.phoneNumber,
+    kakaoId: form.kakaoId.trim() || null,
+    instagramId: form.instagramId.trim() || null,
+  };
+}
+
 const RegisterPage = () => {
   const {
     step,
@@ -105,8 +144,26 @@ const RegisterPage = () => {
     goPrev,
     submit,
   } = useRegisterForm();
+  // 숏링크(`/form/:madamId`)로 들어온 경우의 마담 식별 코드. 제출 시 path variable 로 쓴다.
+  const { madamId } = useParams<{ madamId: string }>();
+  const { isLoggedIn, isLoading: isAuthLoading, loginWithKakao } = useAuth();
+  // 이 폼에 대해 이번 세션에서 카카오 인증을 마쳤는지. (옵션 B: 토큰 유무와 무관하게 강제)
+  const formAuthed =
+    !madamId ||
+    sessionStorage.getItem(FORM_KAKAO_AUTHED_KEY) === `${ROUTES.FORM}/${madamId}`;
+  // 숏링크 유효성: GET /form/{madamId} 로 확인. (null=확인 중, true/false=결과)
+  const [linkValid, setLinkValid] = useState<boolean | null>(madamId ? null : true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  // 카카오 로그인 직후 받은 본인 프사 URL. 폼 사진 모달 미리보기에 쓴다. (kakao-photo-flow.md)
+  const kakaoPhotoUrl = getKakaoProfileImage();
+  // 카카오 프사 사용 여부를 모달에서 선택했는지. (true면 모달을 다시 띄우지 않음)
+  const [kakaoChoiceMade, setKakaoChoiceMade] = useState(false);
+  // 폼 텍스트 제출 성공 시 받는 사진 업로드용 토큰. 사진 단계만 재시도할 때 중복 제출을 막는다.
+  const uploadTokenRef = useRef<string | null>(null);
   const [direction, setDirection] = useState(1);
   const [customHobbies, setCustomHobbies] = useState<string[]>([]);
   const [showCustomHobbyInput, setShowCustomHobbyInput] = useState(false);
@@ -145,6 +202,80 @@ const RegisterPage = () => {
     setMbtiAxes(next);
     updateField("mbti", next.every(Boolean) ? next.join("") : "");
   };
+
+  // 옵션 B: 폼 진입 시 토큰 유무와 무관하게 카카오 로그인을 강제한다.
+  // (이미 이번 세션에서 이 폼을 인증했으면 재로그인하지 않아 무한 루프를 막는다.)
+  useEffect(() => {
+    if (!madamId || formAuthed) return;
+    loginWithKakao(`${ROUTES.FORM}/${madamId}`);
+  }, [madamId, formAuthed, loginWithKakao]);
+
+  // 카카오 인증을 마친 뒤에만 숏링크 유효성을 확인한다. (GET /form/{madamId})
+  useEffect(() => {
+    if (!madamId || !formAuthed || !isLoggedIn) return;
+    let alive = true;
+    formApi.validate(madamId).then(
+      () => alive && setLinkValid(true),
+      () => alive && setLinkValid(false),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [madamId, formAuthed, isLoggedIn]);
+
+  // 숏링크로 진입한 폼은 (카카오 로그인 강제 → 링크 확인) 순으로 게이트를 통과해야 작성할 수 있다.
+  if (madamId) {
+    // ① 아직 이 폼을 카카오 인증하지 않음 → 로그인 화면으로 자동 이동 중
+    if (!formAuthed) {
+      return (
+        <CenteredNotice
+          title="카카오 로그인이 필요해요"
+          description={
+            <>
+              본인 인증을 위해 카카오 로그인 화면으로 이동하고 있어요.
+              <br />
+              자동으로 넘어가지 않으면 아래 버튼을 눌러 주세요.
+            </>
+          }
+          action={
+            <button
+              type="button"
+              onClick={() => loginWithKakao(`${ROUTES.FORM}/${madamId}`)}
+              className="flex items-center justify-center gap-2 rounded-pill bg-[#FEE500] px-6 py-3.5 text-sm font-semibold text-[#191600] transition-[filter] hover:brightness-95"
+            >
+              카카오로 로그인하고 작성하기
+            </button>
+          }
+        />
+      );
+    }
+
+    // ② 로그인 세션 동기화 중 → 스피너
+    if (isAuthLoading || !isLoggedIn) {
+      return <CenteredSpinner />;
+    }
+
+    // ③ 링크 유효성 확인 중 → 스피너
+    if (linkValid === null) {
+      return <CenteredSpinner />;
+    }
+
+    // ④ 잘못된/만료된 숏링크 → 안내 화면
+    if (linkValid === false) {
+      return (
+        <CenteredNotice
+          title="유효하지 않은 링크예요"
+          description={
+            <>
+              링크가 만료됐거나 잘못됐어요.
+              <br />
+              마담에게 링크를 다시 받아 주세요.
+            </>
+          }
+        />
+      );
+    }
+  }
 
   if (isCompleted) {
     return (
@@ -255,11 +386,83 @@ const RegisterPage = () => {
     }
   };
 
+  // 폼 제출: madamId 는 path, B 의 accessToken 은 Authorization 헤더, 입력값은 body 로 전달. (폼_인증.pdf 2장)
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+
+    if (!madamId) {
+      setSubmitError("유효하지 않은 폼 링크예요. 마담에게 링크를 다시 받아 주세요.");
+      return;
+    }
+    if (!hasAccessToken()) {
+      setSubmitError("로그인 후 제출할 수 있어요. 카카오 로그인을 먼저 진행해 주세요.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError("");
+    try {
+      // ① 폼 텍스트 제출 → uploadToken 확보. 사진만 재시도하는 경우 중복 제출하지 않는다.
+      if (!uploadTokenRef.current) {
+        const { uploadToken } = await formApi.submit(madamId, toFormSubmitRequest(form));
+        uploadTokenRef.current = uploadToken;
+      }
+
+      // ② 카카오 프사를 쓰지 않고 직접 올린 사진이 있으면 별도 단계로 업로드한다.
+      //    (useKakaoPhoto=true면 서버가 카카오 프사를 displayOrder=0 으로 자동 등록)
+      if (!form.useKakaoPhoto && form.photoFile) {
+        await formApi.uploadPhoto(uploadTokenRef.current, form.photoFile);
+      }
+
+      setShowConfirm(false);
+      submit();
+    } catch (error) {
+      setSubmitError(
+        error instanceof ApiError
+          ? error.message
+          : "제출에 실패했어요. 잠시 후 다시 시도해 주세요.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = ""; // 같은 파일 재선택도 onChange 가 동작하도록 초기화
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    updateField("photoPreview", url);
+
+    if (!PHOTO_ALLOWED_TYPES.includes(file.type)) {
+      setPhotoError("JPG·PNG·WEBP·GIF 이미지만 올릴 수 있어요.");
+      return;
+    }
+    if (file.size > PHOTO_MAX_BYTES) {
+      setPhotoError("사진 용량은 10MB 이하만 가능해요.");
+      return;
+    }
+
+    setPhotoError("");
+    updateField("photoPreview", URL.createObjectURL(file));
+    updateField("photoFile", file);
+    // 직접 업로드를 선택하면 카카오 프사 사용은 해제한다.
+    updateField("useKakaoPhoto", false);
+    setKakaoChoiceMade(true);
+  };
+
+  // 카카오 프사 모달: "이 사진으로 할게요"
+  const handleUseKakaoPhoto = () => {
+    if (kakaoPhotoUrl) {
+      updateField("photoPreview", kakaoPhotoUrl);
+    }
+    updateField("photoFile", null);
+    updateField("useKakaoPhoto", true);
+    setKakaoChoiceMade(true);
+  };
+
+  // 카카오 프사 모달: "직접 올릴게요"
+  const handleSkipKakaoPhoto = () => {
+    updateField("useKakaoPhoto", false);
+    setKakaoChoiceMade(true);
   };
 
   return (
@@ -314,7 +517,7 @@ const RegisterPage = () => {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept={PHOTO_ACCEPT}
                   className="hidden"
                   onChange={handlePhotoChange}
                 />
@@ -344,18 +547,36 @@ const RegisterPage = () => {
                     </>
                   )}
                 </div>
-                {form.photoPreview ? (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="self-start text-sm font-semibold text-black/55 underline underline-offset-4 transition-colors hover:text-black"
-                  >
-                    다시 올리기
-                  </button>
-                ) : (
-                  <p className="text-sm text-black/30">
-                    사진은 1장만 업로드할 수 있어요
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  {form.photoPreview ? (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-sm font-semibold text-black/55 underline underline-offset-4 transition-colors hover:text-black"
+                    >
+                      다시 올리기
+                    </button>
+                  ) : (
+                    <p className="text-sm text-black/30">사진은 1장만 올릴 수 있어요</p>
+                  )}
+                  {/* 카카오 프사가 있고 지금 그걸 쓰고 있지 않으면 전환 버튼을 보여준다. */}
+                  {kakaoPhotoUrl && !form.useKakaoPhoto && (
+                    <button
+                      type="button"
+                      onClick={handleUseKakaoPhoto}
+                      className="text-sm font-semibold text-black/55 underline underline-offset-4 transition-colors hover:text-black"
+                    >
+                      카카오 프로필 사진 쓰기
+                    </button>
+                  )}
+                </div>
+                {form.useKakaoPhoto && (
+                  <p className="text-sm font-medium text-black/45">
+                    카카오 프로필 사진을 대표 사진으로 사용해요
                   </p>
+                )}
+                {photoError && (
+                  <p className="text-sm font-medium text-red-600">{photoError}</p>
                 )}
               </StepWrapper>
             )}
@@ -835,13 +1056,27 @@ const RegisterPage = () => {
         </div>
       </main>
 
+      {/* 사진 스텝에서 카카오 프사 사용 여부를 한 번 물어본다. (kakao-photo-flow.md) */}
+      {step === 1 && kakaoPhotoUrl && !kakaoChoiceMade && (
+        <KakaoPhotoModal
+          photoUrl={kakaoPhotoUrl}
+          onUse={handleUseKakaoPhoto}
+          onSkip={handleSkipKakaoPhoto}
+        />
+      )}
+
       {showConfirm && (
         <ConfirmSubmitModal
           form={form}
-          onCancel={() => setShowConfirm(false)}
-          onConfirm={() => {
+          isSubmitting={isSubmitting}
+          errorMessage={submitError}
+          onCancel={() => {
+            if (isSubmitting) return;
+            setSubmitError("");
             setShowConfirm(false);
-            submit();
+          }}
+          onConfirm={() => {
+            void handleSubmit();
           }}
         />
       )}
@@ -849,13 +1084,70 @@ const RegisterPage = () => {
   );
 };
 
+/** 카카오 로그인으로 받은 본인 프사를 폼 첫 사진으로 쓸지 묻는 모달 */
+function KakaoPhotoModal({
+  photoUrl,
+  onUse,
+  onSkip,
+}: {
+  photoUrl: string;
+  onUse: () => void;
+  onSkip: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+      <div className="w-full max-w-sm overflow-hidden rounded-block bg-white shadow-2xl">
+        <div className="px-6 pt-6 pb-4 text-center">
+          <h3 className="text-xl font-black text-black">
+            카카오 프로필 사진을 쓸까요?
+          </h3>
+          <p className="mt-1.5 text-sm text-black/45 leading-relaxed">
+            카카오에 등록된 내 사진을
+            <br />
+            대표 사진으로 바로 사용할 수 있어요.
+          </p>
+        </div>
+
+        <div className="flex justify-center px-6 pb-5">
+          <img
+            src={photoUrl}
+            alt="카카오 프로필 사진 미리보기"
+            className="h-32 w-32 rounded-full object-cover ring-1 ring-black/5"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 px-6 pb-6">
+          <button
+            type="button"
+            onClick={onSkip}
+            className="flex-1 rounded-pill border border-black/15 py-3.5 text-sm font-semibold text-black/55 transition-colors hover:border-black/35 hover:text-black"
+          >
+            직접 올릴게요
+          </button>
+          <button
+            type="button"
+            onClick={onUse}
+            className="flex-1 rounded-pill bg-black py-3.5 text-sm font-semibold text-white transition-colors hover:bg-black/80"
+          >
+            이 사진으로 할게요
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** 제출 전 입력한 모든 정보를 요약해 보여주고 최종 확인을 받는 모달 */
 function ConfirmSubmitModal({
   form,
+  isSubmitting,
+  errorMessage,
   onCancel,
   onConfirm,
 }: {
   form: ReturnType<typeof useRegisterForm>["form"];
+  isSubmitting: boolean;
+  errorMessage: string;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -937,20 +1229,30 @@ function ConfirmSubmitModal({
             </dl>
           </div>
 
+          <div className="px-6 pt-4">
+            {errorMessage && (
+              <p className="rounded-block bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                {errorMessage}
+              </p>
+            )}
+          </div>
+
           <div className="flex items-center gap-3 px-6 py-5">
             <button
               type="button"
               onClick={onCancel}
-              className="shrink-0 rounded-pill border border-black/15 px-6 py-3.5 text-sm font-semibold text-black/55 transition-colors hover:border-black/35 hover:text-black"
+              disabled={isSubmitting}
+              className="shrink-0 rounded-pill border border-black/15 px-6 py-3.5 text-sm font-semibold text-black/55 transition-colors hover:border-black/35 hover:text-black disabled:opacity-40"
             >
               다시 볼게요
             </button>
             <button
               type="button"
               onClick={onConfirm}
-              className="flex flex-1 items-center justify-center rounded-pill bg-black py-3.5 text-sm font-semibold text-white transition-all hover:bg-black/80"
+              disabled={isSubmitting}
+              className="flex flex-1 items-center justify-center rounded-pill bg-black py-3.5 text-sm font-semibold text-white transition-all hover:bg-black/80 disabled:opacity-50"
             >
-              제출하기
+              {isSubmitting ? "제출 중…" : "제출하기"}
             </button>
           </div>
         </div>
@@ -979,6 +1281,41 @@ function ConfirmSubmitModal({
         </div>
       )}
     </>
+  );
+}
+
+/** 폼 진입 전 상태(링크 확인 중)를 보여주는 전체 화면 스피너 */
+function CenteredSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="w-6 h-6 rounded-full border-2 border-black/20 border-t-black animate-spin" />
+    </div>
+  );
+}
+
+/** 폼 진입 전 안내(잘못된 링크 / 로그인 필요)를 보여주는 전체 화면 */
+function CenteredNotice({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+      <h2 className="text-2xl font-black text-black mb-3">{title}</h2>
+      <p className="text-black/50 leading-relaxed mb-8">{description}</p>
+      {action ?? (
+        <Link
+          to={ROUTES.HOME}
+          className="px-6 py-3 border border-black/10 text-black/60 text-sm font-semibold rounded-pill"
+        >
+          홈으로 돌아가기
+        </Link>
+      )}
+    </div>
   );
 }
 
