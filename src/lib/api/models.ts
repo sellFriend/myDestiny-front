@@ -45,30 +45,52 @@ export interface FollowStatus {
   followingCount: number;
 }
 
-// ── Form (public) ─────────────────────────────────────
+// ── Form ──────────────────────────────────────────────
+// 폼 제출은 친구(B) 본인 인증(Bearer)으로 처리한다. (폼_인증.pdf 2장)
+// 필수: name, age, phoneNumber / 나머지는 옵션.
 export interface FormSubmitRequest {
+  /** 카카오 프로필 사진을 그대로 쓸지 여부 (false면 직접 올린 사진 사용) */
+  useKakaoPhoto?: boolean;
   name: string;
   age: number;
-  gender?: Gender | null;
+  /** 서버는 대문자 enum 을 받는다. (폼_인증.pdf 2장: "MALE") */
+  gender?: GenderUpper | null;
   job?: string | null;
   intro?: string | null;
   mbti?: string | null;
   hobbies?: string | null;
   phoneNumber: string;
-  email: string;
+  email?: string | null;
   kakaoId?: string | null;
   instagramId?: string | null;
 }
 
 export interface FormSubmitResponse {
   acquaintanceId: string;
+  /** 사진 업로드 단계에서 쓰는 토큰. 사진은 madamId 가 아닌 이 토큰으로 관리한다. (form-photo-guide.md) */
+  uploadToken: string;
   status: RegistrationStatus;
+}
+
+/** 폼 사진 한 장. displayOrder 오름차순으로 정렬된다. */
+export interface FormPhoto {
+  id: string;
+  url: string;
+  displayOrder: number;
 }
 
 // ── Acquaintance ──────────────────────────────────────
 export interface InviteLinkResponse {
   formUrl: string;
   expiresAt: string;
+}
+
+/**
+ * GET /api/acquaintances/my-form 응답: 마담 본인의 폼 숏링크.
+ * formUrl 끝의 UUID 가 마담 식별 코드(=madamId, 카카오 로그인 시의 userId)다.
+ */
+export interface MyFormResponse {
+  formUrl: string;
 }
 
 export interface AcquaintanceDetail {

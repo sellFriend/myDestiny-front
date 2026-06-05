@@ -5,6 +5,7 @@ import {
   clearTokens,
   hasAccessToken,
   queryKeys,
+  setKakaoProfileImage,
   setTokens,
   subscribeToken,
   userApi,
@@ -13,14 +14,23 @@ import {
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'https://fixlog.art/destiny';
 
+/** 로그인 후 돌아갈 경로를 OAuth 왕복 동안 보관하는 sessionStorage 키 */
+export const POST_LOGIN_REDIRECT_KEY = 'postLoginRedirect';
+/** 어떤 폼(`/form/:madamId`)에 대해 카카오 인증을 마쳤는지 표시하는 sessionStorage 키 */
+export const FORM_KAKAO_AUTHED_KEY = 'formKakaoAuthed';
+
 interface AuthContextValue {
   user: MeResponse | null;
   isLoggedIn: boolean;
   isLoading: boolean;
-  /** OAuth 콜백/개발 주입 등으로 토큰을 받은 뒤 로그인 상태로 전환 */
-  setSession: (accessToken: string, refreshToken?: string | null) => void;
-  /** 카카오 OAuth2 로그인 시작 (백엔드 리다이렉트) */
-  loginWithKakao: () => void;
+  /** OAuth 콜백/개발 주입 등으로 토큰을 받은 뒤 로그인 상태로 전환. profileImageUrl 은 카카오 프사. */
+  setSession: (
+    accessToken: string,
+    refreshToken?: string | null,
+    profileImageUrl?: string | null,
+  ) => void;
+  /** 카카오 OAuth2 로그인 시작 (백엔드 리다이렉트). returnTo 를 주면 로그인 후 그 경로로 돌아온다. */
+  loginWithKakao: (returnTo?: string) => void;
   logout: () => void;
 }
 
@@ -39,12 +49,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     enabled: tokenPresent,
   });
 
-  const setSession = (accessToken: string, refreshToken?: string | null) => {
+  const setSession = (
+    accessToken: string,
+    refreshToken?: string | null,
+    profileImageUrl?: string | null,
+  ) => {
     setTokens(accessToken, refreshToken);
+    if (profileImageUrl !== undefined) {
+      setKakaoProfileImage(profileImageUrl);
+    }
     void queryClient.invalidateQueries({ queryKey: queryKeys.me });
   };
 
-  const loginWithKakao = () => {
+  const loginWithKakao = (returnTo?: string) => {
+    // 로그인 후 돌아갈 경로(예: 친구 B가 작성 중이던 폼)를 OAuth 왕복 동안 보관한다.
+    if (returnTo) {
+      sessionStorage.setItem(POST_LOGIN_REDIRECT_KEY, returnTo);
+    }
     // 현재 프론트 origin을 백엔드에 전달해, 로그인 후 이 주소로 돌아오게 한다.
     // 로컬(localhost:5173)이든 배포 도메인이든 자동으로 맞는 곳으로 리다이렉트된다.
     // ⚠️ 백엔드가 이 redirect_uri 파라미터를 받아 FRONTEND_URL 대신 사용해야 동작한다.

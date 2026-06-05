@@ -82,7 +82,7 @@ const ExplorePage = () => {
               </p>
               <button
                 type="button"
-                onClick={loginWithKakao}
+                onClick={() => loginWithKakao()}
                 className="flex items-center justify-center gap-2 px-6 py-3 rounded-pill text-sm font-semibold text-[#191600] bg-[#FEE500] hover:brightness-95 transition-[filter]"
               >
                 카카오로 시작하기

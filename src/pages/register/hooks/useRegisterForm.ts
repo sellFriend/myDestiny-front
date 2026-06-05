@@ -2,6 +2,8 @@ import { useState } from 'react';
 
 export interface RegisterFormData {
   photoPreview: string;
+  photoFile: File | null; // 직접 올린 사진 원본 파일. 제출 후 별도 단계로 업로드한다.
+  useKakaoPhoto: boolean; // true면 카카오 프사를 첫 사진으로 사용 (서버가 자동 등록).
   name: string;
   age: string;
   gender: 'male' | 'female' | null;
@@ -19,6 +21,8 @@ export interface RegisterFormData {
 
 const INITIAL_FORM: RegisterFormData = {
   photoPreview: '',
+  photoFile: null,
+  useKakaoPhoto: false,
   name: '',
   age: '',
   gender: null,

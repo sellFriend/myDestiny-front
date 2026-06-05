@@ -11,4 +11,6 @@ export {
   clearTokens,
   hasAccessToken,
   subscribeToken,
+  getKakaoProfileImage,
+  setKakaoProfileImage,
 } from './tokenStore';
