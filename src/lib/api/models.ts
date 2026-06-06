@@ -244,10 +244,10 @@ export interface MatchingProfileRef {
   name: string;
   gender: GenderUpper;
   /**
-   * 대표 썸네일. 요청함 카드/상세의 아바타·사진에 사용한다.
-   * TODO(API): 백엔드 매칭 응답의 프로필 ref에 추가 요청됨. 도착 전까지는 이니셜 폴백.
+   * 프로필 사진 URL 배열. 사진이 없으면 빈 배열 `[]`(null 아님). 정렬 순서는 보장되지 않는다.
+   * 요청함 카드의 아바타(0번째)와 상세 모달의 사진 갤러리에 쓴다. (matching-frontend-guide §2)
    */
-  photoUrl?: string | null;
+  photoUrls: string[];
 }
 
 export interface MatchingCreateRequest {
