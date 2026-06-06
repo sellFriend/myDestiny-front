@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, Send, X } from 'lucide-react';
+import { Check, Loader2, Send, X } from 'lucide-react';
+import { ApiError, matchingApi } from '@/lib/api';
 import { type Profile } from '@/pages/explore/hooks/useSwipeCards';
 import { type Friend } from '@/pages/friends/components/FriendCard';
 import { useFriends } from '@/pages/friends/hooks/useFriends';
@@ -46,6 +48,31 @@ export function DetailModal({ profile, onClose }: DetailModalProps) {
   const [view, setView] = useState<'detail' | 'request' | 'sent'>('detail');
   const [selectedFriendId, setSelectedFriendId] = useState('');
   const [message, setMessage] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const queryClient = useQueryClient();
+
+  // 매칭 요청 생성 (POST /api/matchings). 성공하면 'sent' 화면으로,
+  // 409/400(쿨다운·중복·미공개 등)은 서버 message 를 그대로 노출한다. (matching-frontend-guide §3.1)
+  const createMatching = useMutation({
+    mutationFn: () =>
+      matchingApi.create({
+        requesterProfileId: selectedFriendId,
+        targetProfileId: profile.id,
+        message: message.trim() || null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['matchings'] });
+      setView('sent');
+    },
+    onError: (error) => {
+      setErrorMsg(
+        error instanceof ApiError
+          ? error.message
+          : '요청을 보내지 못했어요. 잠시 후 다시 시도해 주세요.',
+      );
+    },
+  });
 
   const gradient = PHOTO_GRADIENTS[profile.cardColor] ?? 'from-black/20 to-black/5';
   const accentTint = ACCENT_TINTS[profile.cardColor] ?? 'bg-black/[0.03]';
@@ -64,8 +91,9 @@ export function DetailModal({ profile, onClose }: DetailModalProps) {
   };
 
   const handleSend = () => {
-    if (!selectedFriendId) return;
-    setView('sent');
+    if (!selectedFriendId || createMatching.isPending) return;
+    setErrorMsg('');
+    createMatching.mutate();
   };
 
   const viewAnim = {
@@ -149,7 +177,10 @@ export function DetailModal({ profile, onClose }: DetailModalProps) {
                       {registeredFriends.length > 0 ? (
                         <select
                           value={selectedFriendId}
-                          onChange={(e) => setSelectedFriendId(e.target.value)}
+                          onChange={(e) => {
+                            setSelectedFriendId(e.target.value);
+                            setErrorMsg('');
+                          }}
                           className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black focus:border-black/30 focus:outline-none"
                         >
                           <option value="">친구를 선택해주세요</option>
@@ -175,28 +206,43 @@ export function DetailModal({ profile, onClose }: DetailModalProps) {
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="어떤 점이 잘 어울릴지 적어주세요"
                         rows={3}
+                        maxLength={200}
                         className="w-full resize-none rounded-xl border border-black/10 bg-white px-4 py-3 text-sm text-black focus:border-black/30 focus:outline-none"
                       />
                     </div>
                   </div>
 
-                  <div className="flex flex-shrink-0 gap-2 border-t border-black/5 px-6 py-4">
-                    <button
-                      type="button"
-                      onClick={() => setView('detail')}
-                      className={`${ghostBtn} w-24 shrink-0`}
-                    >
-                      이전
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSend}
-                      disabled={!selectedFriendId}
-                      className={`${primaryBtn} flex-1`}
-                    >
-                      <Send className="h-4 w-4" />
-                      보내기
-                    </button>
+                  <div className="flex-shrink-0 border-t border-black/5 px-6 py-4">
+                    {errorMsg && (
+                      <p className="mb-3 rounded-xl bg-pastel-coral/15 px-4 py-2.5 text-sm leading-relaxed text-pastel-coral">
+                        {errorMsg}
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setErrorMsg('');
+                          setView('detail');
+                        }}
+                        className={`${ghostBtn} w-24 shrink-0`}
+                      >
+                        이전
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSend}
+                        disabled={!selectedFriendId || createMatching.isPending}
+                        className={`${primaryBtn} flex-1`}
+                      >
+                        {createMatching.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                        보내기
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               ) : view === 'sent' ? (

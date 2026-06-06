@@ -1,11 +1,12 @@
 import type { MouseEvent } from 'react';
-import { Heart, Loader2 } from 'lucide-react';
+import { Clock, Heart, Loader2 } from 'lucide-react';
 import { MatchingStatus, type MatchingResponse } from '@/lib/api';
 import { ProfileAvatar } from '@/pages/requests/components/ProfileAvatar';
 import {
   formatSince,
   genderTag,
   matchingSides,
+  remainingMeta,
   statusMeta,
   type RequestTab,
 } from '@/pages/requests/utils';
@@ -43,10 +44,16 @@ export function MatchingCard({
   onCancel,
   onOpenDetail,
 }: MatchingCardProps) {
-  const { status, message } = matching;
+  const { status, message, rejectReason } = matching;
   const badge = statusMeta(status);
   const isPending = status === MatchingStatus.PENDING;
   const isMatched = variant === 'matched';
+
+  // 받은 요청은 응답 마감(72h)이 다가올수록 강조해 막판 응답을 유도한다. (matching-frontend-guide §4.1)
+  const deadline =
+    variant === 'received' && isPending ? remainingMeta(matching.receiverExpiresAt) : null;
+  // 수신자가 거절하며 남긴 사유 — 보낸 쪽에 그대로 노출한다. (matching-frontend-guide §3.2)
+  const showRejectReason = status === MatchingStatus.REJECTED_BY_RECEIVER && Boolean(rejectReason);
 
   // 리스트의 시각 초점은 '상대(counterpart)' 한 명 — 겹친 두 아바타의 혼란을 없앤다. (Hick)
   const { counterpart, mine } = matchingSides(matching, variant);
@@ -121,24 +128,36 @@ export function MatchingCard({
 
       {/* 액션: 수락/거절을 동일 너비로 균형 — 강조는 채움 vs 고스트로만 (절제된 위계) */}
       {variant === 'received' && isPending ? (
-        <div className="mt-4 flex gap-2">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={stop(() => onReject?.(matching.id))}
-            className={`${ghostBtn} flex-1`}
-          >
-            거절
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={stop(() => onAccept?.(matching.id))}
-            className={`${primaryBtn} flex-1`}
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            수락하기
-          </button>
+        <div className="mt-4">
+          {deadline && (
+            <p
+              className={`mb-2 flex items-center gap-1.5 text-xs font-medium ${
+                deadline.urgent ? 'text-pastel-coral' : 'text-black/40'
+              }`}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              {deadline.label}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={stop(() => onReject?.(matching.id))}
+              className={`${ghostBtn} flex-1`}
+            >
+              거절
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={stop(() => onAccept?.(matching.id))}
+              className={`${primaryBtn} flex-1`}
+            >
+              {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              수락하기
+            </button>
+          </div>
         </div>
       ) : variant === 'sent' && isPending ? (
         <button
@@ -158,6 +177,11 @@ export function MatchingCard({
         >
           연락처 보기
         </button>
+      ) : showRejectReason ? (
+        <div className="mt-3.5 rounded-2xl bg-black/[0.035] px-4 py-3">
+          <p className="mb-0.5 text-[11px] font-semibold text-black/35">상대가 남긴 거절 사유</p>
+          <p className="line-clamp-2 text-sm leading-relaxed text-black/60">{rejectReason}</p>
+        </div>
       ) : (
         <p className="mt-3.5 text-xs text-black/30">{formatSince(matching.createdAt)}</p>
       )}

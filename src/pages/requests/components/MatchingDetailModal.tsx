@@ -169,10 +169,11 @@ export function MatchingDetailModal({
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const { status, message } = matching;
+  const { status, message, rejectReason } = matching;
   const { counterpart, mine } = matchingSides(matching, variant);
   const isPending = status === MatchingStatus.PENDING;
   const badge = statusMeta(status);
+  const showRejectReason = status === MatchingStatus.REJECTED_BY_RECEIVER && Boolean(rejectReason);
 
   // 헤더: 누가 → 누구에게 보냈는지 (받음/보냄 관점이 다르다)
   const directionLabel =
@@ -333,6 +334,14 @@ export function MatchingDetailModal({
             <section className="mt-3 rounded-2xl bg-black/[0.035] px-5 py-4">
               <p className="mb-1 text-[11px] font-semibold text-black/35">{messageAuthorLabel}</p>
               <p className="text-sm leading-relaxed text-black/70">{message}</p>
+            </section>
+          )}
+
+          {/* 거절 사유 — 수신자가 남긴 사유를 보낸 쪽에 노출 (matching-frontend-guide §3.2) */}
+          {showRejectReason && (
+            <section className="mt-3 rounded-2xl bg-black/[0.035] px-5 py-4">
+              <p className="mb-1 text-[11px] font-semibold text-black/35">상대가 남긴 거절 사유</p>
+              <p className="text-sm leading-relaxed text-black/70">{rejectReason}</p>
             </section>
           )}
 
