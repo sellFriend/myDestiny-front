@@ -21,7 +21,7 @@ const TABS: { key: RequestTab; label: string }[] = [
 const EMPTY_COPY: Record<RequestTab, { title: string; desc: string }> = {
   received: {
     title: '아직 받은 요청이 없어요',
-    desc: '다른 마담이 소개를 제안하면 여기에서 바로 확인할 수 있어요.',
+    desc: '다른 주선자가 소개를 제안하면 여기에서 바로 확인할 수 있어요.',
   },
   sent: {
     title: '아직 보낸 요청이 없어요',

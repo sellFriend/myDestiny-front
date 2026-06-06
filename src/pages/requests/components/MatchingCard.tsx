@@ -107,7 +107,7 @@ export function MatchingCard({
         </div>
       </div>
 
-      {/* 마담 한마디 — 앱(모바일)에선 숨기고 웹(md↑)에서만. 상세에선 항상 노출 */}
+      {/* 주선자 한마디 — 앱(모바일)에선 숨기고 웹(md↑)에서만. 상세에선 항상 노출 */}
       {message && (
         <div className="mt-3.5 hidden rounded-2xl bg-black/[0.035] px-4 py-3 md:block">
           <p className="mb-0.5 text-[11px] font-semibold text-black/35">

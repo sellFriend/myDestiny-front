@@ -215,7 +215,7 @@ export function DetailModal({ profile, onClose }: DetailModalProps) {
                   </motion.div>
                   <p className="mb-2 text-lg font-black text-black">요청을 보냈어요</p>
                   <p className="mb-6 text-sm leading-relaxed text-black/50">
-                    상대 마담이 수락하면
+                    상대 주선자가 수락하면
                     <br />
                     서로의 연락처를 주고받아요.
                   </p>

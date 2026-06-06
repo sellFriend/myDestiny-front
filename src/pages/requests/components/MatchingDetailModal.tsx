@@ -207,7 +207,7 @@ export function MatchingDetailModal({
       </>
     );
 
-  // 메시지 작성자는 항상 제안한 마담(requester). 그게 나면 '나님' 대신 '내가'로.
+  // 메시지 작성자는 항상 제안한 주선자(requester). 그게 나면 '나님' 대신 '내가'로.
   const messageAuthorLabel = isMe(matching.requesterNickname)
     ? '내가 남긴 한마디'
     : `${matching.requesterNickname}님의 한마디`;
@@ -328,7 +328,7 @@ export function MatchingDetailModal({
             )}
           </section>
 
-          {/* 마담 메시지 */}
+          {/* 주선자 메시지 */}
           {message && (
             <section className="mt-3 rounded-2xl bg-black/[0.035] px-5 py-4">
               <p className="mb-1 text-[11px] font-semibold text-black/35">{messageAuthorLabel}</p>
