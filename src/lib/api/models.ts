@@ -54,6 +54,11 @@ export interface FormSubmitRequest {
   age: number;
   /** 서버는 대문자 enum 을 받는다. (폼_인증.pdf 2장: "MALE") */
   gender?: GenderUpper | null;
+  // 직업은 학생/비학생을 구분해 구조화 필드로 보낸다. (frontend-form-student-fields-guide §1)
+  // 학생이면 schoolName·major, 비학생이면 job 을 채운다. isStudent 는 항상 보내야 한다(누락 시 400).
+  isStudent: boolean;
+  schoolName?: string | null;
+  major?: string | null;
   job?: string | null;
   intro?: string | null;
   mbti?: string | null;
@@ -92,6 +97,10 @@ export interface FormDraft {
   age: number;
   /** 서버는 소문자 gender 를 내려준다. ("female") */
   gender: Gender | null;
+  // 직업도 제출과 동일하게 구조화 필드로 내려온다. (학생: schoolName·major / 비학생: job)
+  isStudent: boolean;
+  schoolName: string | null;
+  major: string | null;
   job: string | null;
   intro: string | null;
   mbti: string | null;
@@ -244,10 +253,10 @@ export interface MatchingProfileRef {
   name: string;
   gender: GenderUpper;
   /**
-   * 대표 썸네일. 요청함 카드/상세의 아바타·사진에 사용한다.
-   * TODO(API): 백엔드 매칭 응답의 프로필 ref에 추가 요청됨. 도착 전까지는 이니셜 폴백.
+   * 프로필 사진 URL 배열. 사진이 없으면 빈 배열 `[]`(null 아님). 정렬 순서는 보장되지 않는다.
+   * 요청함 카드의 아바타(0번째)와 상세 모달의 사진 갤러리에 쓴다. (matching-frontend-guide §2)
    */
-  photoUrl?: string | null;
+  photoUrls: string[];
 }
 
 export interface MatchingCreateRequest {

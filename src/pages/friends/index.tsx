@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
-import { ApiError, acquaintanceApi } from '@/lib/api';
+import { ApiError, ProfileStatus, acquaintanceApi } from '@/lib/api';
 import { AppHeader } from '@/components/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { FriendCard, type Friend } from '@/pages/friends/components/FriendCard';
@@ -228,17 +228,31 @@ const FriendsPage = () => {
     [rejectFriend, selectedFriend, showToast],
   );
 
-  // 폼 수정 요청: 승인 대기 카드면 request-edit 로 draft 전환 + 친구 알림을 보내고,
-  // 이어서 숏링크를 클립보드에 복사해 친구에게 공유하도록 안내한다.
+  // 폼 수정 요청: 카드 상태별로 동작이 다르다. (form-edit-frontend-guide §2,§3)
+  //  - PENDING_APPROVAL / PUBLISHED → request-edit 로 카드를 DRAFT 로 되돌리고
+  //    친구에게 edit_requested 알림 발송. 성공해야 친구가 폼을 재제출할 수 있다.
+  //  - DRAFT → 이미 편집 가능(수정 요청을 이미 보냄). request-edit 는 생략하고 링크만 다시 공유.
+  //  - REJECTED → 종료 상태라 수정 경로 없음.
+  // request-edit 가 409 면 매칭에 묶여 있거나(받은/보낸 요청·성사) 상태가 맞지 않은 것이라,
+  // 서버 안내 메시지를 그대로 띄우고 링크 공유는 중단한다.
   const handleRequestReform = useCallback(
     async (friend: Friend) => {
-      // 승인 대기(verification_pending) 카드만 수정 요청 대상. 등록 완료 카드는 409 이므로
-      // request-edit 는 건너뛰고 링크 공유만 한다.
-      if (friend.status === 'pending') {
+      if (friend.registrationStatus === ProfileStatus.REJECTED) {
+        showToast('거절된 카드는 수정 요청할 수 없어요.', 4000);
+        return false;
+      }
+
+      if (friend.registrationStatus !== ProfileStatus.DRAFT) {
         try {
           await requestEditFriend(friend.id);
-        } catch {
-          // 상태 불일치(이미 draft 등)는 무시하고 링크 공유는 계속 진행한다.
+        } catch (error) {
+          showToast(
+            error instanceof ApiError && error.status === 409
+              ? error.message
+              : '수정 요청에 실패했어요. 잠시 후 다시 시도해 주세요.',
+            5000,
+          );
+          return false;
         }
       }
 

@@ -106,7 +106,8 @@ export function ProfileCard({ profile, isTop, stackIndex, onSwipe, onClick }: Pr
           <img
             src={profile.photo}
             alt={profile.name}
-            className="absolute inset-0 h-full w-full object-cover"
+            draggable={false}
+            className="absolute inset-0 h-full w-full select-none object-cover [-webkit-user-drag:none]"
           />
         ) : (
           <span className="text-7xl font-black text-white/70 select-none">

@@ -138,8 +138,9 @@ export const acquaintanceApi = {
   approve: (id: string) => unwrap<null>(apiClient.post(`/api/profiles/${id}/approve`)),
   reject: (id: string) => unwrap<null>(apiClient.post(`/api/profiles/${id}/reject`)),
   /**
-   * 승인 대기(PENDING_APPROVAL) 카드에 폼 수정 요청 — 카드를 DRAFT 로 되돌리고
-   * 친구에게 edit_requested 알림을 보낸다. (PENDING_APPROVAL 상태에서만 가능, 그 외 409)
+   * 폼 수정 요청 — 카드를 DRAFT 로 되돌리고 친구에게 edit_requested 알림을 보낸다.
+   * PENDING_APPROVAL/PUBLISHED 카드에서만 가능하며, 매칭에 묶여 있으면(받은/보낸 PENDING
+   * 요청·진행/성사) 409 + 안내 메시지를 반환한다. (form-edit-frontend-guide §3)
    */
   requestEdit: (id: string) =>
     unwrap<null>(apiClient.post(`/api/profiles/${id}/request-edit`)),

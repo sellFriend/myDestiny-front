@@ -10,6 +10,7 @@ import {
   type MatchingResponse,
 } from '@/lib/api';
 import { ContactRow } from '@/pages/requests/components/ContactRow';
+import { CounterpartProfile } from '@/pages/requests/components/CounterpartProfile';
 import { ProfileAvatar } from '@/pages/requests/components/ProfileAvatar';
 import {
   genderTag,
@@ -285,18 +286,10 @@ export function MatchingDetailModal({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
-          {/* 상대 지인 — 결정의 주인공이라 크게 (Serial Position) */}
+          {/* 상대 지인 — 결정의 주인공이라 크게 + 상세 프로필 (Serial Position · §6.3 별도 fetch) */}
           <section>
             <p className="mb-2.5 text-[11px] font-semibold text-black/35">{counterpartLabel}</p>
-            <div className="flex items-center gap-4 rounded-2xl bg-black/[0.025] px-5 py-4">
-              <ProfileAvatar profile={counterpart} size={64} />
-              <div className="min-w-0">
-                <p className="text-lg font-bold text-black">{counterpart.name}</p>
-                <p className="mt-0.5 text-sm text-black/45">
-                  {genderText(counterpart.gender, '프로필')}
-                </p>
-              </div>
-            </div>
+            <CounterpartProfile profile={counterpart} />
           </section>
 
           {/* 내 지인 — 이미 아는 사람이라 접어둠 (Progressive Disclosure) */}
@@ -319,12 +312,27 @@ export function MatchingDetailModal({
               />
             </button>
             {isMineOpen && (
-              <div className="mt-2 flex items-center gap-4 rounded-2xl bg-black/[0.025] px-5 py-4">
-                <ProfileAvatar profile={mine} size={56} />
-                <div className="min-w-0">
-                  <p className="text-base font-bold text-black">{mine.name}</p>
-                  <p className="mt-0.5 text-sm text-black/45">{genderText(mine.gender, '내 지인')}</p>
+              <div className="mt-2 space-y-4 rounded-2xl bg-black/[0.025] px-5 py-4">
+                <div className="flex items-center gap-4">
+                  <ProfileAvatar profile={mine} size={56} />
+                  <div className="min-w-0">
+                    <p className="text-base font-bold text-black">{mine.name}</p>
+                    <p className="mt-0.5 text-sm text-black/45">{genderText(mine.gender, '내 지인')}</p>
+                  </div>
                 </div>
+                {/* 내 지인 사진 갤러리 — 매칭 응답의 photoUrls 사용 (2장 이상일 때만 펼침) */}
+                {mine.photoUrls.length > 1 && (
+                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                    {mine.photoUrls.map((url) => (
+                      <img
+                        key={url}
+                        src={url}
+                        alt={`${mine.name} 사진`}
+                        className="h-28 w-24 shrink-0 rounded-xl object-cover"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </section>
