@@ -94,14 +94,23 @@ export const formApi = {
       }),
     ),
   // ── 사진은 제출 응답의 uploadToken 으로 별도 관리한다. (form-photo-guide.md)
+  // /form/** 은 client 의 PUBLIC_PATHS 라 인터셉터가 Authorization 을 생략한다.
+  // 사진 API 는 백엔드가 accessToken 을 요구하므로 submit 처럼 헤더를 직접 넣는다.
   listPhotos: (uploadToken: string) =>
-    unwrap<FormPhoto[]>(apiClient.get(`/form/${uploadToken}/photos`)),
+    unwrap<FormPhoto[]>(
+      apiClient.get(`/form/${uploadToken}/photos`, {
+        headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
+      }),
+    ),
   uploadPhoto: (uploadToken: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
     return unwrap<FormPhoto>(
       apiClient.post(`/form/${uploadToken}/photos`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${getAccessToken() ?? ''}`,
+        },
       }),
     );
   },
@@ -110,7 +119,10 @@ export const formApi = {
     formData.append('file', file);
     return unwrap<FormPhoto>(
       apiClient.put(`/form/${uploadToken}/photos/${photoId}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${getAccessToken() ?? ''}`,
+        },
       }),
     );
   },
