@@ -1,17 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { acquaintanceApi, queryKeys, type AcquaintanceDetail } from '@/lib/api';
+import { acquaintanceApi, profileApi, queryKeys, type ProfileDetail } from '@/lib/api';
 
 /**
- * 폼 승인/거절 (마담) — 지인이 폼 제출 완료(verification_pending) 후
- * 마담이 상세를 확인하고 승인(POST /api/acquaintances/{id}/approve) 또는
- * 거절(POST /api/acquaintances/{id}/reject)한다.
+ * 폼 승인/거절 (마담) — 친구가 폼 제출 완료(PENDING_APPROVAL) 후
+ * 마담이 상세를 확인하고 승인(POST /api/profiles/{id}/approve) 또는
+ * 거절(POST /api/profiles/{id}/reject)한다.
+ * 통합 후 상세는 GET /api/profiles/{id} → ProfileDetail 로 일원화됐다.
  */
 export function useAcquaintanceReview(id: string | null, onSettled?: () => void) {
   const queryClient = useQueryClient();
 
-  const detail = useQuery<AcquaintanceDetail>({
-    queryKey: queryKeys.acquaintances.detail(id ?? ''),
-    queryFn: () => acquaintanceApi.get(id as string),
+  const detail = useQuery<ProfileDetail>({
+    queryKey: queryKeys.profiles.detail(id ?? ''),
+    queryFn: () => profileApi.get(id as string),
     enabled: Boolean(id),
   });
 
@@ -19,7 +20,7 @@ export function useAcquaintanceReview(id: string | null, onSettled?: () => void)
     queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
     queryClient.invalidateQueries({ queryKey: queryKeys.profiles.mine });
     if (id) {
-      queryClient.invalidateQueries({ queryKey: queryKeys.acquaintances.detail(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.profiles.detail(id) });
     }
   };
 

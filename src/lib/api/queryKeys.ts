@@ -18,10 +18,6 @@ export const queryKeys = {
     detail: (id: string) => ['profiles', id] as const,
   },
 
-  acquaintances: {
-    detail: (id: string) => ['acquaintances', id] as const,
-  },
-
   invitations: {
     info: (token: string) => ['invitations', token] as const,
     myProfile: (token: string) => ['invitations', token, 'profile'] as const,

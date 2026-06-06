@@ -65,12 +65,9 @@ export const ConsentStatus = {
 } as const;
 export type ConsentStatus = (typeof ConsentStatus)[keyof typeof ConsentStatus];
 
-export const RegistrationStatus = {
-  DRAFT: 'draft',
-  VERIFICATION_PENDING: 'verification_pending',
-  VERIFIED: 'verified',
-} as const;
-export type RegistrationStatus = (typeof RegistrationStatus)[keyof typeof RegistrationStatus];
+// 주선자 폼/친구 등록 상태는 dating_profiles 로 통합되어 ProfileStatus 를 그대로 쓴다.
+// (acquaintances→profiles 마이그레이션: draft→DRAFT, verification_pending→PENDING_APPROVAL,
+//  verified→PUBLISHED. 구 RegistrationStatus enum 은 제거됨.)
 
 export const NotificationType = {
   FORM_SUBMITTED: 'form_submitted',
@@ -85,5 +82,7 @@ export const NotificationType = {
   MATCHED: 'matched',
   MATCH_REQUEST_EXPIRED: 'match_request_expired',
   MATCH_CONSENT_EXPIRED: 'match_consent_expired',
+  /** 주선자가 친구의 승인 대기 카드에 폼 수정을 요청함 (수신자 = 친구) */
+  EDIT_REQUESTED: 'edit_requested',
 } as const;
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];
