@@ -7,7 +7,6 @@ import type {
   NotificationType,
   ProfileStatus,
   ProfileVisibility,
-  RegistrationStatus,
   UserRole,
 } from './types';
 
@@ -69,7 +68,8 @@ export interface FormSubmitResponse {
   acquaintanceId: string;
   /** 사진 업로드 단계에서 쓰는 토큰. 사진은 madamId 가 아닌 이 토큰으로 관리한다. (form-photo-guide.md) */
   uploadToken: string;
-  status: RegistrationStatus;
+  /** 제출 직후 상태. 통합 후 PENDING_APPROVAL(승인 대기)로 내려온다. */
+  status: ProfileStatus;
 }
 
 /** 폼 사진 한 장. displayOrder 오름차순으로 정렬된다. */
@@ -79,6 +79,34 @@ export interface FormPhoto {
   displayOrder: number;
 }
 
+/**
+ * GET /form/{madamId} 의 prefill 데이터. 친구가 같은 마담 폼에 다시 들어오면
+ * 기존 작성분(DRAFT/PENDING_APPROVAL)을 채워 내려준다. (친구_등록_거절_재수정요청 가이드 2장)
+ * 본인 폼·거절·승인 완료(PUBLISHED)·로그인 안 됨 → null.
+ */
+export interface FormDraft {
+  acquaintanceId: string;
+  uploadToken: string;
+  status: ProfileStatus;
+  name: string;
+  age: number;
+  /** 서버는 소문자 gender 를 내려준다. ("female") */
+  gender: Gender | null;
+  job: string | null;
+  intro: string | null;
+  mbti: string | null;
+  hobbies: string | null;
+  phoneNumber: string | null;
+  kakaoId: string | null;
+  instagramId: string | null;
+  photoUrls: string[];
+}
+
+/** GET /form/{madamId} 응답. draft 가 객체면 기존 작성분 prefill, null 이면 빈 폼. */
+export interface FormPrefillResponse {
+  draft: FormDraft | null;
+}
+
 // ── Acquaintance ──────────────────────────────────────
 export interface InviteLinkResponse {
   formUrl: string;
@@ -86,13 +114,17 @@ export interface InviteLinkResponse {
 }
 
 /**
- * GET /api/acquaintances/my-form 응답: 마담 본인의 폼 숏링크.
+ * GET /api/profiles/my-form 응답: 마담 본인의 폼 숏링크.
  * formUrl 끝의 UUID 가 마담 식별 코드(=madamId, 카카오 로그인 시의 userId)다.
  */
 export interface MyFormResponse {
   formUrl: string;
 }
 
+/**
+ * GET /api/profiles 응답 항목 = 주선자 친구 목록 카드.
+ * (마이그레이션 후 /api/profiles 가 ProfileSummary[] 대신 이 목록을 반환한다.)
+ */
 export interface AcquaintanceDetail {
   id: string;
   name: string;
@@ -102,7 +134,9 @@ export interface AcquaintanceDetail {
   intro: string | null;
   mbti: string | null;
   hobbies: string | null;
-  registrationStatus: RegistrationStatus;
+  /** ProfileStatus — DRAFT / PENDING_APPROVAL(승인 대기) / PUBLISHED(승인 완료) 등 */
+  registrationStatus: ProfileStatus;
+  /** 승인(PUBLISHED) 시각. 미승인 시 null */
   verifiedAt: string | null;
   photoUrls: string[];
 }

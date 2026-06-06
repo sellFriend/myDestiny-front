@@ -3,6 +3,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/rea
 import {
   ProfileStatus,
   ProfileVisibility,
+  acquaintanceApi,
   profileApi,
   queryKeys,
   type ProfileDetail,
@@ -97,6 +98,21 @@ export function useFriends(enabled = true) {
     onSuccess: invalidate,
   });
 
+  // 폼 승인/거절/수정요청은 지인(acquaintance) 엔드포인트로 처리한다.
+  // (이 백엔드에서 승인 대기 프로필 id == 지인 id 이므로 friend.id 를 그대로 쓴다.)
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => acquaintanceApi.approve(id),
+    onSuccess: invalidate,
+  });
+  const rejectMutation = useMutation({
+    mutationFn: (id: string) => acquaintanceApi.reject(id),
+    onSuccess: invalidate,
+  });
+  const requestEditMutation = useMutation({
+    mutationFn: (id: string) => acquaintanceApi.requestEdit(id),
+    onSuccess: invalidate,
+  });
+
   const isDetailLoading =
     listQuery.isSuccess && ids.length > 0 && detailQueries.some((q) => q.isLoading);
 
@@ -108,9 +124,10 @@ export function useFriends(enabled = true) {
     deleteFriend: deleteMutation.mutate,
     deactivateFriend: deactivateMutation.mutate,
     activateFriend: activateMutation.mutate,
-    // TODO(API): 프로필 등록 승인/거절 엔드포인트 연결 (현재 명세 미확정)
-    approveFriend: (_id: string) => invalidate(),
-    rejectFriend: deleteMutation.mutate,
+    // 성공/실패에 따라 토스트·모달을 제어할 수 있도록 Promise 를 반환한다.
+    approveFriend: approveMutation.mutateAsync,
+    rejectFriend: rejectMutation.mutateAsync,
+    requestEditFriend: requestEditMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
   };
 }

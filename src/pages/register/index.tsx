@@ -17,7 +17,7 @@ import {
   getKakaoProfileImage,
   hasAccessToken,
 } from "@/lib/api";
-import type { FormSubmitRequest } from "@/lib/api";
+import type { FormDraft, FormSubmitRequest } from "@/lib/api";
 import {
   useRegisterForm,
   type RegisterFormData,
@@ -104,6 +104,15 @@ function isValidPhone(digits: string): boolean {
   return /^01\d{8,9}$/.test(digits);
 }
 
+/** 콤마/슬래시로 구분된 취미 문자열을 태그 배열로 변환 (prefill 복원용) */
+function parseHobbiesString(hobbies: string | null): string[] {
+  if (!hobbies) return [];
+  return hobbies
+    .split(/[,/·]/)
+    .map((h) => h.trim())
+    .filter(Boolean);
+}
+
 // 사진 업로드 제약 (form-photo-guide.md)
 const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 const PHOTO_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -139,6 +148,7 @@ const RegisterPage = () => {
     form,
     isCompleted,
     updateField,
+    applyDraft,
     toggleHobby,
     goNext,
     goPrev,
@@ -153,6 +163,8 @@ const RegisterPage = () => {
     sessionStorage.getItem(FORM_KAKAO_AUTHED_KEY) === `${ROUTES.FORM}/${madamId}`;
   // 숏링크 유효성: GET /form/{madamId} 로 확인. (null=확인 중, true/false=결과)
   const [linkValid, setLinkValid] = useState<boolean | null>(madamId ? null : true);
+  // 폼 진입 차단 사유(400): 본인 폼·주선자 등록 불가·이미 다른 주선자 등록 등의 안내 메시지. (cross-role-block-guide.md)
+  const [linkErrorMessage, setLinkErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -164,6 +176,10 @@ const RegisterPage = () => {
   const [kakaoChoiceMade, setKakaoChoiceMade] = useState(false);
   // 폼 텍스트 제출 성공 시 받는 사진 업로드용 토큰. 사진 단계만 재시도할 때 중복 제출을 막는다.
   const uploadTokenRef = useRef<string | null>(null);
+  // 서버 prefill(draft)을 받아 기존 작성분을 불러온 수정 모드인지. (안내 배너 노출용)
+  const [isEditMode, setIsEditMode] = useState(false);
+  // prefill 은 한 번만 적용한다. (링크 검증 effect 재실행 시 사용자가 수정한 값을 덮어쓰지 않도록)
+  const prefillAppliedRef = useRef(false);
   const [direction, setDirection] = useState(1);
   const [customHobbies, setCustomHobbies] = useState<string[]>([]);
   const [showCustomHobbyInput, setShowCustomHobbyInput] = useState(false);
@@ -210,17 +226,67 @@ const RegisterPage = () => {
     loginWithKakao(`${ROUTES.FORM}/${madamId}`);
   }, [madamId, formAuthed, loginWithKakao]);
 
-  // 카카오 인증을 마친 뒤에만 숏링크 유효성을 확인한다. (GET /form/{madamId})
+  // 서버 prefill(draft)로 폼을 미리 채운다. (수정 요청을 받은 친구가 폼에 재진입한 경우)
+  const applyPrefill = (draft: FormDraft) => {
+    if (prefillAppliedRef.current) return;
+    prefillAppliedRef.current = true;
+
+    const hobbies = parseHobbiesString(draft.hobbies);
+    const phone = (draft.phoneNumber ?? "").replace(/\D/g, "").slice(0, 11);
+    const mbti = draft.mbti && draft.mbti.length === 4 ? draft.mbti : "";
+
+    applyDraft({
+      name: draft.name ?? "",
+      age: draft.age != null ? String(draft.age) : "",
+      gender:
+        draft.gender === "male" ? "male" : draft.gender === "female" ? "female" : null,
+      // 서버 draft 는 직업을 단일 문자열(job)로만 주므로 비학생/직업으로 복원한다.
+      isStudent: false,
+      occupation: draft.job ?? "",
+      mbti,
+      hobbies,
+      intro: draft.intro ?? "",
+      phoneNumber: phone,
+      kakaoId: draft.kakaoId ?? "",
+      instagramId: draft.instagramId ?? "",
+      // 기존에 올린 사진을 미리보기로 보여준다. (useKakaoPhoto 는 prefill 대상 아님)
+      photoPreview: draft.photoUrls?.[0] ?? "",
+      photoFile: null,
+      useKakaoPhoto: false,
+    });
+
+    if (mbti) setMbtiAxes(mbti.split(""));
+    // 기본 취미 목록에 없는 항목은 커스텀 칩으로 노출한다.
+    setCustomHobbies(hobbies.filter((h) => !HOBBY_OPTIONS.includes(h)));
+    // prefill 사진이 있으니 카카오 프사 모달을 다시 띄우지 않는다.
+    setKakaoChoiceMade(true);
+    setIsEditMode(true);
+  };
+
+  // 카카오 인증을 마친 뒤에만 숏링크 유효성을 확인하고, prefill(draft)이 있으면 폼을 채운다.
+  // (GET /form/{madamId} — Authorization 이 있으면 기존 작성분을 함께 내려준다.)
   useEffect(() => {
     if (!madamId || !formAuthed || !isLoggedIn) return;
     let alive = true;
-    formApi.validate(madamId).then(
-      () => alive && setLinkValid(true),
-      () => alive && setLinkValid(false),
+    formApi.getForm(madamId).then(
+      ({ draft }) => {
+        if (!alive) return;
+        setLinkValid(true);
+        if (draft) applyPrefill(draft);
+      },
+      (error) => {
+        if (!alive) return;
+        setLinkValid(false);
+        // 400 은 역할 충돌 등 명시적 사유가 있어 그 메시지를 그대로 보여준다. (404 등은 일반 안내)
+        if (error instanceof ApiError && error.status === 400 && error.message) {
+          setLinkErrorMessage(error.message);
+        }
+      },
     );
     return () => {
       alive = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [madamId, formAuthed, isLoggedIn]);
 
   // 숏링크로 진입한 폼은 (카카오 로그인 강제 → 링크 확인) 순으로 게이트를 통과해야 작성할 수 있다.
@@ -260,8 +326,12 @@ const RegisterPage = () => {
       return <CenteredSpinner />;
     }
 
-    // ④ 잘못된/만료된 숏링크 → 안내 화면
+    // ④ 잘못된/만료된 숏링크 또는 역할 충돌(400) → 안내 화면
     if (linkValid === false) {
+      // 400 차단 사유가 있으면 서버 메시지를 그대로 노출하고, 그 외엔 만료/오류 안내를 보여준다.
+      if (linkErrorMessage) {
+        return <CenteredNotice title="폼에 들어갈 수 없어요" description={linkErrorMessage} />;
+      }
       return (
         <CenteredNotice
           title="유효하지 않은 링크예요"
@@ -496,6 +566,13 @@ const RegisterPage = () => {
         className="flex-1 flex flex-col px-6 py-10 max-w-lg mx-auto w-full"
         onKeyDown={handleEnterKey}
       >
+        {/* 수정 모드: 마담의 수정 요청으로 폼에 재진입해 기존 작성분을 불러온 상태 */}
+        {isEditMode && (
+          <div className="mb-6 rounded-block bg-pastel-lime/40 px-4 py-3 text-sm font-medium leading-relaxed text-black/70">
+            이전에 작성한 내용을 불러왔어요. 수정해서 다시 제출하면 마담에게 전달돼요.
+          </div>
+        )}
+
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           <motion.div
             key={step}

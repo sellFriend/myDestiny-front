@@ -53,6 +53,8 @@ export function FriendDetailModal({
   const [isImageOpen, setIsImageOpen] = useState(false);
   // 폼 재수정 요청 후 모달 안에 남기는 인라인 흔적 (토스트와 이중 피드백)
   const [reformRequested, setReformRequested] = useState(false);
+  // 되돌릴 수 없는 파괴 액션(거절/삭제)은 한 번 더 확인받는다.
+  const [confirming, setConfirming] = useState<null | 'reject' | 'delete'>(null);
 
   // ── 모바일 전체화면 시트 드래그 제어 ─────────────────────────────────
   const [viewportH, setViewportH] = useState(() =>
@@ -123,9 +125,15 @@ export function FriendDetailModal({
   const isPending = friend.status === 'pending';
   const isDeactivated = friend.status === 'approved' && !friend.isActive;
 
-  const handleDelete = () => {
-    onDelete(friend.id);
-    onClose();
+  // 파괴 액션은 confirming 단계를 거친 뒤에만 실제로 실행한다.
+  const handleConfirm = () => {
+    if (confirming === 'reject') {
+      // 거절은 페이지가 API 성공 시 토스트와 함께 모달을 닫는다. (여기서 닫지 않음)
+      onReject(friend.id);
+    } else if (confirming === 'delete') {
+      onDelete(friend.id);
+      onClose();
+    }
   };
 
   const handleReform = async () => {
@@ -137,6 +145,12 @@ export function FriendDetailModal({
     'flex flex-1 items-center justify-center gap-2 rounded-pill bg-black py-3.5 text-sm font-bold text-white transition-all hover:bg-black/85 active:scale-[0.98]';
   const ghostBtn =
     'flex flex-1 items-center justify-center gap-2 rounded-pill bg-black/[0.05] py-3.5 text-sm font-semibold text-black/60 transition-colors hover:bg-black/[0.09] hover:text-black/80';
+  // 파괴 액션 진입점: 하단에 옅은 적색 텍스트로 위계를 가장 낮춘다.
+  const dangerTextBtn =
+    'flex w-full items-center justify-center gap-1.5 py-1 text-sm font-medium text-[#c0432f]/70 transition-colors hover:text-[#c0432f]';
+  // 확인 패널의 실행 버튼: 명확한 적색으로 되돌릴 수 없음을 알린다.
+  const dangerBtn =
+    'flex flex-1 items-center justify-center gap-2 rounded-pill bg-[#e05a4a] py-3.5 text-sm font-bold text-white transition-all hover:bg-[#cf4c3d] active:scale-[0.98]';
 
   return (
     <>
@@ -286,41 +300,52 @@ export function FriendDetailModal({
                 </p>
               )}
 
-              {isPending ? (
+              {confirming ? (
+                /* 파괴 액션 확인 단계 — 위계 최상단에 경고, 실행은 적색 버튼으로만 */
+                <>
+                  <p className="text-center text-sm leading-relaxed text-black/60">
+                    {confirming === 'reject'
+                      ? '등록을 거절하면 이 친구의 폼이 삭제돼요. 계속할까요?'
+                      : '친구를 삭제하면 되돌릴 수 없어요. 계속할까요?'}
+                  </p>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setConfirming(null)} className={ghostBtn}>
+                      취소
+                    </button>
+                    <button type="button" onClick={handleConfirm} className={dangerBtn}>
+                      <Trash2 className="h-4 w-4" />
+                      {confirming === 'reject' ? '거절하기' : '삭제하기'}
+                    </button>
+                  </div>
+                </>
+              ) : isPending ? (
+                /* 승인 대기: 등록됨 모달과 동일하게 상단 2버튼(행) + 하단 파괴 액션 레이아웃 */
                 <>
                   <div className="flex gap-2">
+                    <button type="button" onClick={handleReform} className={ghostBtn}>
+                      <Pencil className="h-4 w-4" />
+                      폼 수정 요청
+                    </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        onApprove(friend.id);
-                        onClose();
-                      }}
+                      onClick={() => onApprove(friend.id)}
                       className={primaryBtn}
                     >
                       <Check className="h-4 w-4" />
                       등록 승인
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onReject(friend.id);
-                        onClose();
-                      }}
-                      className={`${ghostBtn} max-w-[40%]`}
-                    >
-                      등록 거절
-                    </button>
                   </div>
                   <button
                     type="button"
-                    onClick={handleReform}
-                    className="flex w-full items-center justify-center gap-1.5 py-1 text-sm font-medium text-black/45 transition-colors hover:text-black/70"
+                    onClick={() => setConfirming('reject')}
+                    className={dangerTextBtn}
                   >
-                    <Pencil className="h-3.5 w-3.5" />
-                    폼 다시 수정 요청하기
+                    <Trash2 className="h-3.5 w-3.5" />
+                    등록 거절
                   </button>
                 </>
               ) : (
+                /* 등록됨: 중립 액션 → 파괴(삭제) 순. 위계 규칙을 대기 모달과 동일하게 유지 */
                 <>
                   {isDeactivated ? (
                     <button
@@ -329,7 +354,7 @@ export function FriendDetailModal({
                         onActivate(friend.id);
                         onClose();
                       }}
-                      className={primaryBtn}
+                      className={`${primaryBtn} w-full`}
                     >
                       <Bell className="h-4 w-4" />
                       다시 활성화
@@ -355,8 +380,8 @@ export function FriendDetailModal({
                   )}
                   <button
                     type="button"
-                    onClick={handleDelete}
-                    className="flex w-full items-center justify-center gap-1.5 py-1 text-sm font-medium text-black/40 transition-colors hover:text-black/65"
+                    onClick={() => setConfirming('delete')}
+                    className={dangerTextBtn}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     친구 삭제

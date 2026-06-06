@@ -29,8 +29,14 @@ export function AcquaintanceReviewModal({ acquaintanceId, onClose }: Acquaintanc
   const [confirmReject, setConfirmReject] = useState(false);
 
   const gender = detail ? genderLabel(detail.gender) : '';
-  const hobbies = detail ? parseHobbies(detail.hobbies) : [];
+  const hobbies = detail ? parseHobbies(detail.hobby) : [];
   const photo = detail?.photoUrls[0];
+  // 상세(ProfileDetail)는 학생이면 학교·학과를, 아니면 직업을 보여준다.
+  const occupationLine = detail
+    ? detail.isStudent
+      ? [detail.schoolName, detail.major].filter(Boolean).join(' · ')
+      : (detail.occupation ?? '')
+    : '';
 
   return (
     <div
@@ -70,7 +76,9 @@ export function AcquaintanceReviewModal({ acquaintanceId, onClose }: Acquaintanc
                 <span className="text-base font-bold text-black/45">{detail.age}세</span>
                 {gender && <span className="text-sm font-medium text-black/40">· {gender}</span>}
               </div>
-              {detail.job && <p className="mt-1 text-sm font-medium text-black/55">{detail.job}</p>}
+              {occupationLine && (
+                <p className="mt-1 text-sm font-medium text-black/55">{occupationLine}</p>
+              )}
             </div>
 
             <div className="space-y-5 px-6 py-6">
@@ -111,12 +119,14 @@ export function AcquaintanceReviewModal({ acquaintanceId, onClose }: Acquaintanc
                 </section>
               )}
 
-              {detail.intro && (
+              {detail.introduction && (
                 <section>
                   <p className="mb-2 font-mono text-[10px] uppercase tracking-widest text-black/35">
                     소개글
                   </p>
-                  <p className="text-[15px] leading-relaxed text-black/70">{detail.intro}</p>
+                  <p className="text-[15px] leading-relaxed text-black/70">
+                    {detail.introduction}
+                  </p>
                 </section>
               )}
             </div>
