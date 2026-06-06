@@ -72,7 +72,7 @@ export const followApi = {
 
 // ── 5.5 Form ──────────────────────────────────────────
 // 폼 조회는 public 이지만, 제출은 친구(B) 본인 인증(Bearer)이 필요하다. (폼_인증.pdf 2장)
-// 마담 코드(madamId)는 path, B 의 accessToken 은 Authorization 헤더, 프로필 데이터는 body 로 분리해 전달한다.
+// 주선자 코드(madamId)는 path, B 의 accessToken 은 Authorization 헤더, 프로필 데이터는 body 로 분리해 전달한다.
 export const formApi = {
   /**
    * 폼 링크 유효성 확인 + prefill 조회. Authorization 이 있으면(=친구 로그인 상태) 기존
@@ -133,7 +133,7 @@ export const formApi = {
 // profileApi.get(ProfileDetail) 로 일원화하고, 여기엔 친구 관리 액션만 남긴다.
 export const acquaintanceApi = {
   invite: () => unwrap<InviteLinkResponse>(apiClient.post('/api/profiles/invite')),
-  /** 마담 본인의 폼 숏링크 조회 — 친구 추가 시 복사할 formUrl 을 반환한다. */
+  /** 주선자 본인의 폼 숏링크 조회 — 친구 추가 시 복사할 formUrl 을 반환한다. */
   myForm: () => unwrap<MyFormResponse>(apiClient.get('/api/profiles/my-form')),
   approve: (id: string) => unwrap<null>(apiClient.post(`/api/profiles/${id}/approve`)),
   reject: (id: string) => unwrap<null>(apiClient.post(`/api/profiles/${id}/reject`)),

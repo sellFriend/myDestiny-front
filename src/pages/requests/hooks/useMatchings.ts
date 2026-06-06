@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MatchingStatus, matchingApi, queryKeys } from '@/lib/api';
+import { ApiError, MatchingStatus, matchingApi, queryKeys } from '@/lib/api';
 import type { RequestTab } from '@/pages/requests/utils';
 
 /**
@@ -38,11 +39,21 @@ export function useMatchings(activeTab: RequestTab, enabled: boolean) {
 /** 수락 / 거절 / 취소 — 성공 시 매칭 목록 전체 무효화 */
 export function useMatchingActions() {
   const queryClient = useQueryClient();
+  const [feedback, setFeedback] = useState<string | null>(null);
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['matchings'] });
 
-  const accept = useMutation({ mutationFn: (id: string) => matchingApi.accept(id), onSuccess: invalidate });
-  const reject = useMutation({ mutationFn: (id: string) => matchingApi.reject(id), onSuccess: invalidate });
-  const cancel = useMutation({ mutationFn: (id: string) => matchingApi.cancel(id), onSuccess: invalidate });
+  /**
+   * 동시성 에러(이미 처리됨 409 / 기한 만료 410)는 목록이 낡았다는 신호이므로,
+   * 서버 message 를 안내하고 목록을 새로고침해 최신 상태로 맞춘다. (matching-frontend-guide §4.2)
+   */
+  const onError = (error: unknown) => {
+    setFeedback(error instanceof ApiError ? error.message : '요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    invalidate();
+  };
+
+  const accept = useMutation({ mutationFn: (id: string) => matchingApi.accept(id), onSuccess: invalidate, onError });
+  const reject = useMutation({ mutationFn: (id: string) => matchingApi.reject(id), onSuccess: invalidate, onError });
+  const cancel = useMutation({ mutationFn: (id: string) => matchingApi.cancel(id), onSuccess: invalidate, onError });
 
   // 현재 변이 중인 매칭 id (해당 카드 버튼만 로딩/비활성화)
   const busyId =
@@ -56,5 +67,7 @@ export function useMatchingActions() {
     reject: reject.mutate,
     cancel: cancel.mutate,
     busyId,
+    feedback,
+    clearFeedback: () => setFeedback(null),
   };
 }

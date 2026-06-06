@@ -63,4 +63,4 @@ if (req.useKakaoPhoto() && friend.getKakaoProfileImageUrl() != null) {
 ## 4. 주의 — 누구의 사진인가
 
 저장되는 사진은 **로그인한 지인 본인(`friend`)** 의 카카오 프사입니다 (`AcquaintanceService.java:75,99`).
-폼 링크를 만든 마담(`madam`)의 사진이 아니라, 폼을 작성하는 당사자의 사진입니다.
+폼 링크를 만든 주선자(`madam`)의 사진이 아니라, 폼을 작성하는 당사자의 사진입니다.

@@ -118,7 +118,7 @@ const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
 const PHOTO_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const PHOTO_MAX_BYTES = 10 * 1024 * 1024; // 10MB
 
-/** 폼 입력값을 폼 제출 요청 body 로 변환한다. (마담 코드/토큰은 path·헤더로 분리) */
+/** 폼 입력값을 폼 제출 요청 body 로 변환한다. (주선자 코드/토큰은 path·헤더로 분리) */
 function toFormSubmitRequest(form: RegisterFormData): FormSubmitRequest {
   const job = form.isStudent
     ? [form.school, form.major].filter(Boolean).join(" ")
@@ -154,7 +154,7 @@ const RegisterPage = () => {
     goPrev,
     submit,
   } = useRegisterForm();
-  // 숏링크(`/form/:madamId`)로 들어온 경우의 마담 식별 코드. 제출 시 path variable 로 쓴다.
+  // 숏링크(`/form/:madamId`)로 들어온 경우의 주선자 식별 코드. 제출 시 path variable 로 쓴다.
   const { madamId } = useParams<{ madamId: string }>();
   const { isLoggedIn, isLoading: isAuthLoading, loginWithKakao } = useAuth();
   // 이 폼에 대해 이번 세션에서 카카오 인증을 마쳤는지. (옵션 B: 토큰 유무와 무관하게 강제)
@@ -339,7 +339,7 @@ const RegisterPage = () => {
             <>
               링크가 만료됐거나 잘못됐어요.
               <br />
-              마담에게 링크를 다시 받아 주세요.
+              주선자에게 링크를 다시 받아 주세요.
             </>
           }
         />
@@ -365,7 +365,7 @@ const RegisterPage = () => {
         >
           <h2 className="text-3xl font-black text-black mb-3">제출 완료!</h2>
           <p className="text-black/50 leading-relaxed mb-8">
-            마담의 승인을 기다리고 있어요.
+            주선자의 승인을 기다리고 있어요.
             <br />
             승인되면 탐색 화면에 카드가 등록돼요.
           </p>
@@ -461,7 +461,7 @@ const RegisterPage = () => {
     if (isSubmitting) return;
 
     if (!madamId) {
-      setSubmitError("유효하지 않은 폼 링크예요. 마담에게 링크를 다시 받아 주세요.");
+      setSubmitError("유효하지 않은 폼 링크예요. 주선자에게 링크를 다시 받아 주세요.");
       return;
     }
     if (!hasAccessToken()) {
@@ -566,10 +566,10 @@ const RegisterPage = () => {
         className="flex-1 flex flex-col px-6 py-10 max-w-lg mx-auto w-full"
         onKeyDown={handleEnterKey}
       >
-        {/* 수정 모드: 마담의 수정 요청으로 폼에 재진입해 기존 작성분을 불러온 상태 */}
+        {/* 수정 모드: 주선자의 수정 요청으로 폼에 재진입해 기존 작성분을 불러온 상태 */}
         {isEditMode && (
           <div className="mb-6 rounded-block bg-pastel-lime/40 px-4 py-3 text-sm font-medium leading-relaxed text-black/70">
-            이전에 작성한 내용을 불러왔어요. 수정해서 다시 제출하면 마담에게 전달돼요.
+            이전에 작성한 내용을 불러왔어요. 수정해서 다시 제출하면 주선자에게 전달돼요.
           </div>
         )}
 
@@ -1265,7 +1265,7 @@ function ConfirmSubmitModal({
               이대로 제출할까요?
             </h3>
             <p className="mt-1 text-sm text-black/40">
-              제출하면 마담의 승인 전까지 수정할 수 없어요.
+              제출하면 주선자의 승인 전까지 수정할 수 없어요.
             </p>
           </div>
 
