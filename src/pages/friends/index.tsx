@@ -221,10 +221,10 @@ const FriendsPage = () => {
       <AppHeader />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-5 pt-8 pb-28 md:pb-8">
-        {/* 페이지 타이틀 + 친구 추가 버튼 (친구가 있을 때만 노출) */}
+        {/* 페이지 타이틀 + 친구 추가 버튼 (로그인 + 로딩/에러 아닐 때 노출) */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-black text-black">내 친구</h1>
-          {friends.length > 0 && (
+          {isLoggedIn && !isLoading && !isError && (
             <button
               type="button"
               onClick={handleAddFriend}
@@ -259,21 +259,6 @@ const FriendsPage = () => {
               className="px-5 py-2.5 bg-black text-white text-sm font-semibold rounded-pill hover:bg-black/80 transition-colors"
             >
               다시 시도
-            </button>
-          </div>
-        ) : friends.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-80 sm:h-64 text-center">
-            <p className="text-lg font-black text-black mb-2">등록된 친구가 없어요</p>
-            <p className="text-sm text-black/40 mb-6 leading-relaxed">
-              친구 추가 버튼을 눌러 링크를 생성하고<br />친구에게 공유해보세요
-            </p>
-            <button
-              type="button"
-              onClick={handleAddFriend}
-              className="mt-6 sm:mt-0 flex items-center gap-2 px-8 py-4 text-base sm:px-6 sm:py-3 sm:text-sm bg-black text-white font-semibold rounded-pill"
-            >
-              <UserPlus className="w-5 h-5 sm:w-4 sm:h-4" />
-              친구 추가하기
             </button>
           </div>
         ) : (
