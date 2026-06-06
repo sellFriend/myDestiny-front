@@ -137,8 +137,10 @@ export function FriendDetailModal({
   };
 
   const handleReform = async () => {
-    await onRequestReform(friend);
-    setReformRequested(true);
+    // 링크 복사까지 성공(true)했을 때만 인라인 흔적을 남긴다.
+    // 409(매칭에 묶임·상태 불일치 등)는 토스트로만 안내하고 흔적은 띄우지 않는다.
+    const copied = await onRequestReform(friend);
+    setReformRequested(copied === true);
   };
 
   const primaryBtn =
