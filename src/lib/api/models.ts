@@ -54,6 +54,11 @@ export interface FormSubmitRequest {
   age: number;
   /** 서버는 대문자 enum 을 받는다. (폼_인증.pdf 2장: "MALE") */
   gender?: GenderUpper | null;
+  // 직업은 학생/비학생을 구분해 구조화 필드로 보낸다. (frontend-form-student-fields-guide §1)
+  // 학생이면 schoolName·major, 비학생이면 job 을 채운다. isStudent 는 항상 보내야 한다(누락 시 400).
+  isStudent: boolean;
+  schoolName?: string | null;
+  major?: string | null;
   job?: string | null;
   intro?: string | null;
   mbti?: string | null;
@@ -92,6 +97,10 @@ export interface FormDraft {
   age: number;
   /** 서버는 소문자 gender 를 내려준다. ("female") */
   gender: Gender | null;
+  // 직업도 제출과 동일하게 구조화 필드로 내려온다. (학생: schoolName·major / 비학생: job)
+  isStudent: boolean;
+  schoolName: string | null;
+  major: string | null;
   job: string | null;
   intro: string | null;
   mbti: string | null;

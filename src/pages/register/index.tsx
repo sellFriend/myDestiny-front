@@ -120,10 +120,6 @@ const PHOTO_MAX_BYTES = 10 * 1024 * 1024; // 10MB
 
 /** 폼 입력값을 폼 제출 요청 body 로 변환한다. (주선자 코드/토큰은 path·헤더로 분리) */
 function toFormSubmitRequest(form: RegisterFormData): FormSubmitRequest {
-  const job = form.isStudent
-    ? [form.school, form.major].filter(Boolean).join(" ")
-    : form.occupation;
-
   return {
     // 카카오 프사 사용 여부는 모달에서 받은 명시적 선택값을 그대로 보낸다. (kakao-photo-flow.md 2장)
     useKakaoPhoto: form.useKakaoPhoto,
@@ -131,7 +127,12 @@ function toFormSubmitRequest(form: RegisterFormData): FormSubmitRequest {
     age: Number(form.age),
     // 서버는 대문자 enum 을 받는다. (male → MALE)
     gender: form.gender ? (form.gender === "male" ? "MALE" : "FEMALE") : null,
-    job: job.trim() || null,
+    // 학생이면 학교·학과(schoolName·major), 비학생이면 직업(job)을 보낸다. (반대쪽 필드는 null)
+    // isStudent 는 항상 전송한다 — 누락 시 400. (frontend-form-student-fields-guide §1)
+    isStudent: form.isStudent ?? false,
+    schoolName: form.isStudent ? form.school.trim() || null : null,
+    major: form.isStudent ? form.major.trim() || null : null,
+    job: form.isStudent ? null : form.occupation.trim() || null,
     intro: form.intro.trim() || null,
     mbti: form.mbti || null,
     hobbies: form.hobbies.length > 0 ? form.hobbies.join(", ") : null,
@@ -176,8 +177,10 @@ const RegisterPage = () => {
   const [kakaoChoiceMade, setKakaoChoiceMade] = useState(false);
   // 폼 텍스트 제출 성공 시 받는 사진 업로드용 토큰. 사진 단계만 재시도할 때 중복 제출을 막는다.
   const uploadTokenRef = useRef<string | null>(null);
-  // 서버 prefill(draft)을 받아 기존 작성분을 불러온 수정 모드인지. (안내 배너 노출용)
+  // 서버 prefill(draft)을 받아 기존 작성분을 불러온 수정 모드인지.
   const [isEditMode, setIsEditMode] = useState(false);
+  // 수정 모드 진입을 알리는 토스트. 잠깐 떴다가 자동으로 사라진다. (상단 고정 배너 대체)
+  const [showEditToast, setShowEditToast] = useState(false);
   // prefill 은 한 번만 적용한다. (링크 검증 effect 재실행 시 사용자가 수정한 값을 덮어쓰지 않도록)
   const prefillAppliedRef = useRef(false);
   const [direction, setDirection] = useState(1);
@@ -234,14 +237,17 @@ const RegisterPage = () => {
     const hobbies = parseHobbiesString(draft.hobbies);
     const phone = (draft.phoneNumber ?? "").replace(/\D/g, "").slice(0, 11);
     const mbti = draft.mbti && draft.mbti.length === 4 ? draft.mbti : "";
+    // 서버 draft 의 gender 가 대/소문자(MALE/male) 어느 쪽으로 와도 폼 값으로 복원한다.
+    const gender = draft.gender?.toLowerCase();
 
     applyDraft({
       name: draft.name ?? "",
       age: draft.age != null ? String(draft.age) : "",
-      gender:
-        draft.gender === "male" ? "male" : draft.gender === "female" ? "female" : null,
-      // 서버 draft 는 직업을 단일 문자열(job)로만 주므로 비학생/직업으로 복원한다.
-      isStudent: false,
+      gender: gender === "male" ? "male" : gender === "female" ? "female" : null,
+      // 학생 여부에 따라 학교·학과(schoolName) / 직업(job)을 각각 복원한다.
+      isStudent: draft.isStudent,
+      school: draft.schoolName ?? "",
+      major: draft.major ?? "",
       occupation: draft.job ?? "",
       mbti,
       hobbies,
@@ -288,6 +294,14 @@ const RegisterPage = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [madamId, formAuthed, isLoggedIn]);
+
+  // 수정 모드로 진입하면 안내 토스트를 잠깐 띄웠다가 자동으로 닫는다.
+  useEffect(() => {
+    if (!isEditMode) return;
+    setShowEditToast(true);
+    const timer = window.setTimeout(() => setShowEditToast(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [isEditMode]);
 
   // 숏링크로 진입한 폼은 (카카오 로그인 강제 → 링크 확인) 순으로 게이트를 통과해야 작성할 수 있다.
   if (madamId) {
@@ -385,6 +399,8 @@ const RegisterPage = () => {
   // 각 스텝의 하위 입력 단계별 유효성 (배열 길이 = 그 스텝의 단계 수, [i]=i번째 단계 입력이 완료됐는지)
   const stageValidators = (s: number): boolean[] => {
     switch (s) {
+      case 1: // 사진: 직접 업로드·카카오 프사·기존 사진 중 하나가 있어야 다음으로 진행
+        return [form.photoPreview.trim().length > 0];
       case 2: // 기본 정보: 이름 → 나이 → 성별
         return [
           form.name.trim().length > 0,
@@ -404,7 +420,7 @@ const RegisterPage = () => {
           (form.instagramId ?? "").trim().length > 0 ||
             (form.kakaoId ?? "").trim().length > 0,
         ];
-      default: // 1 사진 · 4 MBTI · 7 미리보기 등 단일 입력
+      default: // 4 MBTI · 7 미리보기 등 단일 입력
         return [s === 4 ? form.mbti.length > 0 : true];
     }
   };
@@ -566,13 +582,6 @@ const RegisterPage = () => {
         className="flex-1 flex flex-col px-6 py-10 max-w-lg mx-auto w-full"
         onKeyDown={handleEnterKey}
       >
-        {/* 수정 모드: 주선자의 수정 요청으로 폼에 재진입해 기존 작성분을 불러온 상태 */}
-        {isEditMode && (
-          <div className="mb-6 rounded-block bg-pastel-lime/40 px-4 py-3 text-sm font-medium leading-relaxed text-black/70">
-            이전에 작성한 내용을 불러왔어요. 수정해서 다시 제출하면 주선자에게 전달돼요.
-          </div>
-        )}
-
         <AnimatePresence mode="wait" custom={direction} initial={false}>
           <motion.div
             key={step}
@@ -1157,6 +1166,21 @@ const RegisterPage = () => {
           }}
         />
       )}
+
+      {/* 수정 모드 진입 안내 토스트 (상단 고정 배너 대체) */}
+      <AnimatePresence>
+        {showEditToast && (
+          <motion.div
+            className="fixed left-1/2 top-20 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-xl bg-black px-5 py-3.5 text-center text-sm font-medium leading-relaxed text-white shadow-lg"
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            이전 작성 내용을 불러왔어요. 수정 후 다시 제출해 주세요.
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
