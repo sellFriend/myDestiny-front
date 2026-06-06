@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { acquaintanceApi, profileApi, queryKeys, type ProfileDetail } from '@/lib/api';
 
 /**
- * 폼 승인/거절 (마담) — 친구가 폼 제출 완료(PENDING_APPROVAL) 후
- * 마담이 상세를 확인하고 승인(POST /api/profiles/{id}/approve) 또는
+ * 폼 승인/거절 (주선자) — 친구가 폼 제출 완료(PENDING_APPROVAL) 후
+ * 주선자가 상세를 확인하고 승인(POST /api/profiles/{id}/approve) 또는
  * 거절(POST /api/profiles/{id}/reject)한다.
  * 통합 후 상세는 GET /api/profiles/{id} → ProfileDetail 로 일원화됐다.
  */

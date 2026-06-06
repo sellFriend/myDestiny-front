@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Inbox } from 'lucide-react';
@@ -21,7 +21,7 @@ const TABS: { key: RequestTab; label: string }[] = [
 const EMPTY_COPY: Record<RequestTab, { title: string; desc: string }> = {
   received: {
     title: '아직 받은 요청이 없어요',
-    desc: '다른 마담이 소개를 제안하면 여기에서 바로 확인할 수 있어요.',
+    desc: '다른 주선자가 소개를 제안하면 여기에서 바로 확인할 수 있어요.',
   },
   sent: {
     title: '아직 보낸 요청이 없어요',
@@ -39,7 +39,14 @@ const RequestsPage = () => {
 
   const { isLoggedIn, loginWithKakao } = useAuth();
   const { received, sent, matched, pendingReceivedCount } = useMatchings(tab, isLoggedIn);
-  const { accept, reject, cancel, busyId } = useMatchingActions();
+  const { accept, reject, cancel, busyId, feedback, clearFeedback } = useMatchingActions();
+
+  // 수락/거절/취소 실패(이미 처리됨·기한 만료 등) 안내 토스트 — 잠시 후 자동 사라짐
+  useEffect(() => {
+    if (!feedback) return;
+    const timer = window.setTimeout(clearFeedback, 4000);
+    return () => window.clearTimeout(timer);
+  }, [feedback, clearFeedback]);
 
   const activeQuery = tab === 'received' ? received : tab === 'sent' ? sent : matched;
   const items = activeQuery.data ?? [];
@@ -218,6 +225,17 @@ const RequestsPage = () => {
           </>
         )}
       </main>
+
+      {feedback && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[70] flex justify-center px-5 md:bottom-8">
+          <p
+            role="status"
+            className="pointer-events-auto max-w-sm rounded-pill bg-black px-5 py-3 text-center text-sm font-medium text-white shadow-lg"
+          >
+            {feedback}
+          </p>
+        </div>
+      )}
 
       {detailTarget && (
         <MatchingDetailModal

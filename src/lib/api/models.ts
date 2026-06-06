@@ -80,7 +80,7 @@ export interface FormPhoto {
 }
 
 /**
- * GET /form/{madamId} 의 prefill 데이터. 친구가 같은 마담 폼에 다시 들어오면
+ * GET /form/{madamId} 의 prefill 데이터. 친구가 같은 주선자 폼에 다시 들어오면
  * 기존 작성분(DRAFT/PENDING_APPROVAL)을 채워 내려준다. (친구_등록_거절_재수정요청 가이드 2장)
  * 본인 폼·거절·승인 완료(PUBLISHED)·로그인 안 됨 → null.
  */
@@ -114,8 +114,8 @@ export interface InviteLinkResponse {
 }
 
 /**
- * GET /api/profiles/my-form 응답: 마담 본인의 폼 숏링크.
- * formUrl 끝의 UUID 가 마담 식별 코드(=madamId, 카카오 로그인 시의 userId)다.
+ * GET /api/profiles/my-form 응답: 주선자 본인의 폼 숏링크.
+ * formUrl 끝의 UUID 가 주선자 식별 코드(=madamId, 카카오 로그인 시의 userId)다.
  */
 export interface MyFormResponse {
   formUrl: string;

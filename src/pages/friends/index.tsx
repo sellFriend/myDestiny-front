@@ -11,7 +11,7 @@ import { FriendDetailModal } from '@/pages/friends/components/FriendDetailModal'
 import { FriendInviteSheet } from '@/pages/friends/components/FriendInviteSheet';
 import { useFriends } from '@/pages/friends/hooks/useFriends';
 
-const INVITE_TITLE = '마담 친구 초대';
+const INVITE_TITLE = '주선자 친구 초대';
 const INVITE_TEXT = '링크를 눌러 내 친구로 연결해줘요.';
 
 type FriendTab = 'registered' | 'pending';
@@ -20,7 +20,7 @@ const FRIEND_TABS: { key: FriendTab; label: string }[] = [
   { key: 'pending', label: '승인 대기' },
 ];
 
-/** 마담 본인의 폼 숏링크(formUrl)를 서버에서 받아온다. (폼_인증.pdf 1장) */
+/** 주선자 본인의 폼 숏링크(formUrl)를 서버에서 받아온다. (폼_인증.pdf 1장) */
 async function fetchInviteLink(): Promise<string> {
   const { formUrl } = await acquaintanceApi.myForm();
   return formUrl;

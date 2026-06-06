@@ -71,7 +71,7 @@ export function ContactRequestModal({ profile, onClose }: ContactRequestModalPro
               >
                 <p className="font-black text-lg text-black mb-2">요청을 보냈어요!</p>
                 <p className="text-sm text-black/50 mb-6 leading-relaxed">
-                  상대 마담이 승인하면<br />서로의 연락처가 공유돼요.
+                  상대 주선자가 승인하면<br />서로의 연락처가 공유돼요.
                 </p>
                 <button
                   type="button"
