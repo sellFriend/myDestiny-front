@@ -1,3 +1,5 @@
+import { type ProfileStatus } from '@/lib/api';
+
 export interface Friend {
   id: string;
   name: string;
@@ -13,6 +15,11 @@ export interface Friend {
   cardColor: string;
   requestCount: number;
   status: 'pending' | 'approved';
+  /**
+   * 서버 원본 카드 상태(DRAFT/PENDING_APPROVAL/PUBLISHED/REJECTED…).
+   * 폼 수정 요청(request-edit)이 카드 상태별로 동작이 달라 원본을 그대로 들고 있는다.
+   */
+  registrationStatus: ProfileStatus;
   /** 등록된 친구가 매칭 요청을 잠시 받지 않도록 비활성화한 상태. (status === 'approved' 일 때만 의미 있음) */
   isActive: boolean;
 }
@@ -110,7 +117,10 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
         <h3 className="text-xl font-black text-black mb-2">
           {friend.name}, {friend.age}
         </h3>
-        <p className="text-sm text-black/60 leading-relaxed line-clamp-2 mb-3">{friend.intro}</p>
+        {/* 카드 높이 일관성: 소개 길이와 무관하게 항상 2줄 높이를 차지하고, 넘치면 …으로 자른다. */}
+        <p className="text-sm text-black/60 leading-relaxed line-clamp-2 min-h-[2lh] mb-3">
+          {friend.intro}
+        </p>
 
         <div className="flex flex-wrap gap-1.5">
           {friend.hobbies.slice(0, 3).map((tag) => (

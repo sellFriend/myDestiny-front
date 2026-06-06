@@ -44,6 +44,7 @@ function toFriend(profile: ProfileDetail, index: number): Friend {
     cardColor: CARD_COLORS[index % CARD_COLORS.length],
     requestCount: 0, // 프로필별 받은 매칭 수 API가 없어 0으로 둔다.
     status: profile.status === ProfileStatus.PUBLISHED ? 'approved' : 'pending',
+    registrationStatus: profile.status,
     isActive: profile.status !== ProfileStatus.SUSPENDED,
   };
 }
@@ -84,6 +85,13 @@ export function useFriends(enabled = true) {
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: queryKeys.profiles.mine });
 
+  // 승인/거절/수정요청은 카드 status 가 들어 있는 상세(detail) 캐시를 바꾸므로
+  // 목록뿐 아니라 해당 프로필의 detail 쿼리도 함께 무효화해야 화면이 즉시 갱신된다.
+  const invalidateFriend = (id: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.profiles.mine });
+    queryClient.invalidateQueries({ queryKey: queryKeys.profiles.detail(id) });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => profileApi.remove(id),
     onSuccess: invalidate,
@@ -102,15 +110,15 @@ export function useFriends(enabled = true) {
   // (이 백엔드에서 승인 대기 프로필 id == 지인 id 이므로 friend.id 를 그대로 쓴다.)
   const approveMutation = useMutation({
     mutationFn: (id: string) => acquaintanceApi.approve(id),
-    onSuccess: invalidate,
+    onSuccess: (_data, id) => invalidateFriend(id),
   });
   const rejectMutation = useMutation({
     mutationFn: (id: string) => acquaintanceApi.reject(id),
-    onSuccess: invalidate,
+    onSuccess: (_data, id) => invalidateFriend(id),
   });
   const requestEditMutation = useMutation({
     mutationFn: (id: string) => acquaintanceApi.requestEdit(id),
-    onSuccess: invalidate,
+    onSuccess: (_data, id) => invalidateFriend(id),
   });
 
   const isDetailLoading =

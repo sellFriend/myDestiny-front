@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { profileApi, queryKeys, ApiError, type Gender, type PublicProfile } from '@/lib/api';
@@ -102,6 +102,13 @@ export function useSwipeCards(enabled = true) {
   const [swipedIds, setSwipedIds] = useState<Set<string>>(new Set());
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [showTutorial, setShowTutorial] = useState(() => !hasTutorialBeenSeen());
+
+  // 성별 필터가 바뀌면 새 목록을 처음부터 보여준다.
+  // (이전 필터에서 스와이프한 기록이 남으면 새로 받은 카드가 걸러져 빈 화면이 된다)
+  useEffect(() => {
+    setSwipedIds(new Set());
+    setSelectedProfile(null);
+  }, [gender]);
 
   const profiles = useMemo(() => {
     const mapped = (data ?? []).map(toProfile);

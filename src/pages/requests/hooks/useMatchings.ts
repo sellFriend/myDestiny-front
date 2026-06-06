@@ -52,13 +52,18 @@ export function useMatchingActions() {
   };
 
   const accept = useMutation({ mutationFn: (id: string) => matchingApi.accept(id), onSuccess: invalidate, onError });
-  const reject = useMutation({ mutationFn: (id: string) => matchingApi.reject(id), onSuccess: invalidate, onError });
+  // 거절은 사유(선택)를 함께 보낸다. (matching-frontend-guide §4.3)
+  const reject = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => matchingApi.reject(id, reason),
+    onSuccess: invalidate,
+    onError,
+  });
   const cancel = useMutation({ mutationFn: (id: string) => matchingApi.cancel(id), onSuccess: invalidate, onError });
 
   // 현재 변이 중인 매칭 id (해당 카드 버튼만 로딩/비활성화)
   const busyId =
     (accept.isPending && accept.variables) ||
-    (reject.isPending && reject.variables) ||
+    (reject.isPending && reject.variables?.id) ||
     (cancel.isPending && cancel.variables) ||
     null;
 

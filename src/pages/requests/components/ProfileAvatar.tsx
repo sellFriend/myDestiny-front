@@ -24,16 +24,17 @@ interface ProfileAvatarProps {
 }
 
 /**
- * 프로필 대표 이미지. 사진(photoUrl)이 있으면 사진을, 없으면 이름 첫 글자 + 고정 파스텔로 폴백한다.
+ * 프로필 대표 이미지. 사진(photoUrls[0])이 있으면 사진을, 없으면 이름 첫 글자 + 고정 파스텔로 폴백한다.
  * 요청함 리스트 카드와 상세에서 공통으로 쓰는 단일 시각 앵커.
  */
 export function ProfileAvatar({ profile, size = 44, className = '' }: ProfileAvatarProps) {
   const dimension = { width: size, height: size };
+  const photo = profile.photoUrls[0];
 
-  if (profile.photoUrl) {
+  if (photo) {
     return (
       <img
-        src={profile.photoUrl}
+        src={photo}
         alt={profile.name}
         style={dimension}
         className={`shrink-0 rounded-full object-cover ${className}`}

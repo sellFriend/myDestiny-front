@@ -9,6 +9,7 @@ import type { MatchingResponse } from '@/lib/api';
 import { MatchingCard } from '@/pages/requests/components/MatchingCard';
 import { MatchingCardSkeleton } from '@/pages/requests/components/MatchingCardSkeleton';
 import { MatchingDetailModal } from '@/pages/requests/components/MatchingDetailModal';
+import { RejectReasonDialog } from '@/pages/requests/components/RejectReasonDialog';
 import { useMatchingActions, useMatchings } from '@/pages/requests/hooks/useMatchings';
 import type { RequestTab } from '@/pages/requests/utils';
 
@@ -36,10 +37,20 @@ const EMPTY_COPY: Record<RequestTab, { title: string; desc: string }> = {
 const RequestsPage = () => {
   const [tab, setTab] = useState<RequestTab>('received');
   const [detailTarget, setDetailTarget] = useState<MatchingResponse | null>(null);
+  // 거절 사유 입력 다이얼로그 대상 — 즉시 거절 대신 사유를 먼저 받는다. (matching-frontend-guide §4.3)
+  const [rejectTarget, setRejectTarget] = useState<MatchingResponse | null>(null);
 
   const { isLoggedIn, loginWithKakao } = useAuth();
   const { received, sent, matched, pendingReceivedCount } = useMatchings(tab, isLoggedIn);
   const { accept, reject, cancel, busyId, feedback, clearFeedback } = useMatchingActions();
+
+  // 거절 버튼 → 사유 다이얼로그 열기 (상세 모달이 열려 있으면 닫고 다이얼로그로 전환)
+  const requestReject = (id: string) => {
+    const target = received.data?.find((m) => m.id === id) ?? null;
+    if (!target) return;
+    setDetailTarget(null);
+    setRejectTarget(target);
+  };
 
   // 수락/거절/취소 실패(이미 처리됨·기한 만료 등) 안내 토스트 — 잠시 후 자동 사라짐
   useEffect(() => {
@@ -108,7 +119,7 @@ const RequestsPage = () => {
             variant={tab}
             busy={busyId === matching.id}
             onAccept={accept}
-            onReject={reject}
+            onReject={requestReject}
             onCancel={cancel}
             onOpenDetail={setDetailTarget}
           />
@@ -247,13 +258,22 @@ const RequestsPage = () => {
             accept(id);
             setDetailTarget(null);
           }}
-          onReject={(id) => {
-            reject(id);
-            setDetailTarget(null);
-          }}
+          onReject={requestReject}
           onCancel={(id) => {
             cancel(id);
             setDetailTarget(null);
+          }}
+        />
+      )}
+
+      {rejectTarget && (
+        <RejectReasonDialog
+          matching={rejectTarget}
+          busy={busyId === rejectTarget.id}
+          onClose={() => setRejectTarget(null)}
+          onConfirm={(reason) => {
+            reject({ id: rejectTarget.id, reason });
+            setRejectTarget(null);
           }}
         />
       )}
