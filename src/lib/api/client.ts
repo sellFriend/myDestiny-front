@@ -78,11 +78,29 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
+/**
+ * 매물(친구)로 등록된 사용자의 전체 차단(필터 단 403)인지 판별한다.
+ * 필터 단 403 은 GlobalExceptionHandler 를 거치지 않아 공통 래퍼(success 필드)가 없다.
+ * 서비스 단 403(링크 발급 불가 등)은 { success:false, ... } 형태라 구분된다. (cross-role-block-guide.md)
+ */
+function isRoleBlockedForbidden(error: AxiosError<ApiErrorBody>): boolean {
+  return error.response?.status === 403 && error.response.data?.success === undefined;
+}
+
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError<ApiErrorBody>) => {
     const original = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined;
     const status = error.response?.status;
+
+    // 매물 사용자 전체 차단 → 로그아웃 처리 후 안내 페이지로 이동한다.
+    if (isRoleBlockedForbidden(error)) {
+      clearTokens();
+      if (typeof window !== 'undefined' && window.location.pathname !== '/blocked') {
+        window.location.href = '/blocked';
+      }
+      return Promise.reject(new ApiError(extractMessage(error), status));
+    }
 
     if (
       status === 401 &&

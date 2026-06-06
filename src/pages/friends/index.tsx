@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
-import { acquaintanceApi } from '@/lib/api';
+import { ApiError, acquaintanceApi } from '@/lib/api';
 import { AppHeader } from '@/components/AppHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { FriendCard, type Friend } from '@/pages/friends/components/FriendCard';
@@ -60,6 +60,7 @@ const FriendsPage = () => {
     activateFriend,
     approveFriend,
     rejectFriend,
+    requestEditFriend,
   } = useFriends(isLoggedIn);
   const [tab, setTab] = useState<FriendTab>('registered');
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
@@ -86,8 +87,15 @@ const FriendsPage = () => {
     let link: string;
     try {
       link = await fetchInviteLink();
-    } catch {
-      showToast('초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요.', 4000);
+    } catch (error) {
+      // 서비스 단 403(매물 사용자는 주선자 역할 불가 등)은 서버 메시지를 그대로 안내한다.
+      // (필터 단 403=전체 차단은 client 인터셉터가 /blocked 로 보내므로 여기 오지 않는다.)
+      showToast(
+        error instanceof ApiError && error.status === 403
+          ? error.message
+          : '초대 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요.',
+        4000,
+      );
       return;
     }
     setInviteLink(link);
@@ -190,9 +198,50 @@ const FriendsPage = () => {
     deleteFriend(id);
   };
 
-  // 폼 재수정 요청: 숏링크를 받아 클립보드에 복사하고, 앱/웹 모두 토스트로만 알린다.
+  // 등록 승인: API 성공 시 토스트를 띄우고 모달을 닫는다.
+  const handleApprove = useCallback(
+    async (id: string) => {
+      const name = selectedFriend?.name ?? '친구';
+      try {
+        await approveFriend(id);
+        setSelectedFriend(null);
+        showToast(`${name}님을 등록했어요.`);
+      } catch {
+        showToast('승인에 실패했어요. 잠시 후 다시 시도해 주세요.', 4000);
+      }
+    },
+    [approveFriend, selectedFriend, showToast],
+  );
+
+  // 등록 거절: API 성공 시 토스트를 띄우고 모달을 닫는다.
+  const handleReject = useCallback(
+    async (id: string) => {
+      const name = selectedFriend?.name ?? '친구';
+      try {
+        await rejectFriend(id);
+        setSelectedFriend(null);
+        showToast(`${name}님의 등록을 거절했어요.`);
+      } catch {
+        showToast('거절에 실패했어요. 잠시 후 다시 시도해 주세요.', 4000);
+      }
+    },
+    [rejectFriend, selectedFriend, showToast],
+  );
+
+  // 폼 수정 요청: 승인 대기 카드면 request-edit 로 draft 전환 + 친구 알림을 보내고,
+  // 이어서 숏링크를 클립보드에 복사해 친구에게 공유하도록 안내한다.
   const handleRequestReform = useCallback(
     async (friend: Friend) => {
+      // 승인 대기(verification_pending) 카드만 수정 요청 대상. 등록 완료 카드는 409 이므로
+      // request-edit 는 건너뛰고 링크 공유만 한다.
+      if (friend.status === 'pending') {
+        try {
+          await requestEditFriend(friend.id);
+        } catch {
+          // 상태 불일치(이미 draft 등)는 무시하고 링크 공유는 계속 진행한다.
+        }
+      }
+
       let link: string;
       try {
         link = await fetchInviteLink();
@@ -209,7 +258,7 @@ const FriendsPage = () => {
       );
       return copied;
     },
-    [showToast],
+    [requestEditFriend, showToast],
   );
 
   const registeredFriends = friends.filter((f) => f.status === 'approved');
@@ -349,7 +398,7 @@ const FriendsPage = () => {
                             ? '등록된 친구가 없어요'
                             : '승인 대기 중인 친구가 없어요'}
                         </p>
-                        <p className="max-w-xs text-sm leading-relaxed text-black/40">
+                        <p className="max-w-xs break-keep text-sm leading-relaxed text-black/40">
                           {tab === 'registered'
                             ? '친구가 폼을 작성하면 승인 대기 탭에서 확인하고 등록할 수 있어요.'
                             : '친구가 폼 작성을 마치면 여기에서 등록을 승인할 수 있어요.'}
@@ -397,8 +446,8 @@ const FriendsPage = () => {
           friend={selectedFriend}
           onClose={() => setSelectedFriend(null)}
           onDelete={handleDelete}
-          onApprove={approveFriend}
-          onReject={rejectFriend}
+          onApprove={handleApprove}
+          onReject={handleReject}
           onDeactivate={deactivateFriend}
           onActivate={activateFriend}
           onRequestReform={handleRequestReform}

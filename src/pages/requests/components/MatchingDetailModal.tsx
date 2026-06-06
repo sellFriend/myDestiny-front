@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion, useDragControls } from 'framer-motion';
+import { motion, useDragControls, type PanInfo } from 'framer-motion';
 import { Check, ChevronDown, Clock, Heart, Loader2, X } from 'lucide-react';
 import {
   MatchingStatus,
@@ -148,6 +148,11 @@ export function MatchingDetailModal({
   const [isMineOpen, setIsMineOpen] = useState(isMatched);
   const dragControls = useDragControls();
 
+  // 모바일에서만 바텀 시트(그래버·끌어내려 닫기)로, 데스크탑은 중앙 모달 + X 버튼으로 동작
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)').matches : true,
+  );
+
   // 시트가 열린 동안 배경 스크롤 잠금
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -155,6 +160,13 @@ export function MatchingDetailModal({
     return () => {
       document.body.style.overflow = previousOverflow;
     };
+  }, []);
+
+  // 모바일 여부 추적 (회전·리사이즈 대응)
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.matchMedia('(max-width: 639px)').matches);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const { status, message } = matching;
@@ -214,33 +226,51 @@ export function MatchingDetailModal({
       onClick={onClose}
     >
       <motion.div
-        initial={{ y: '100%', opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+        {...(isMobile
+          ? {
+              initial: { y: '100%', opacity: 0 },
+              animate: { y: 0, opacity: 1 },
+              transition: { type: 'spring', stiffness: 320, damping: 34 },
+              drag: 'y' as const,
+              dragControls,
+              dragListener: false,
+              dragConstraints: { top: 0 },
+              dragElastic: { top: 0, bottom: 0 },
+              dragSnapToOrigin: true,
+              onDragEnd: (_: unknown, info: PanInfo) => {
+                if (info.offset.y > DRAG_CLOSE_DISTANCE || info.velocity.y > DRAG_CLOSE_VELOCITY) {
+                  onClose();
+                }
+              },
+            }
+          : {
+              initial: { scale: 0.96, opacity: 0 },
+              animate: { scale: 1, opacity: 1 },
+              transition: { type: 'spring', stiffness: 360, damping: 40 },
+            })}
         onClick={(event) => event.stopPropagation()}
-        drag="y"
-        dragControls={dragControls}
-        dragListener={false}
-        dragConstraints={{ top: 0 }}
-        dragElastic={{ top: 0, bottom: 0 }}
-        dragSnapToOrigin
-        onDragEnd={(_, info) => {
-          if (info.offset.y > DRAG_CLOSE_DISTANCE || info.velocity.y > DRAG_CLOSE_VELOCITY) {
-            onClose();
-          }
-        }}
         className="flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-[1.5rem] bg-white sm:max-h-[85vh] sm:max-w-md sm:rounded-block sm:shadow-2xl"
       >
-        {/* 그래버 — 끌어서 시트를 닫는 드래그 핸들 */}
+        {/* 그래버 — 끌어서 시트를 닫는 드래그 핸들 (모바일 전용) */}
         <div
-          className="flex shrink-0 cursor-grab touch-none justify-center pb-1 pt-3 active:cursor-grabbing"
+          className="flex shrink-0 cursor-grab touch-none justify-center pb-1 pt-3 active:cursor-grabbing sm:hidden"
           onPointerDown={(event) => dragControls.start(event)}
         >
           <div className="h-1 w-9 rounded-full bg-black/15" />
         </div>
 
+        {/* 닫기 버튼 — 데스크탑 전용(모바일은 그래버 끌어내리기로 닫음) */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-3.5 top-3.5 z-30 hidden h-8 w-8 items-center justify-center rounded-full bg-black/[0.05] text-black/45 transition-colors hover:bg-black/10 hover:text-black/80 sm:flex"
+          aria-label="닫기"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
         {/* 헤더: 관계 맥락 + 상태 배지 (Common Region) */}
-        <div className="relative shrink-0 border-b border-black/[0.06] px-6 pb-5 pt-3">
+        <div className="relative shrink-0 border-b border-black/[0.06] px-6 pb-5 pt-3 sm:pt-5">
           <span
             className={`inline-flex rounded-pill px-2.5 py-1 text-[11px] font-semibold ${badge.className}`}
           >

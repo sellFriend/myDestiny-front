@@ -49,6 +49,11 @@ export function useRegisterForm() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  // 서버 prefill(draft)로 폼을 미리 채울 때 여러 필드를 한 번에 덮어쓴다.
+  const applyDraft = (values: Partial<RegisterFormData>) => {
+    setForm((prev) => ({ ...prev, ...values }));
+  };
+
   const toggleHobby = (hobby: string) => {
     setForm((prev) => ({
       ...prev,
@@ -80,6 +85,7 @@ export function useRegisterForm() {
     form,
     isCompleted,
     updateField,
+    applyDraft,
     toggleHobby,
     goNext,
     goPrev,

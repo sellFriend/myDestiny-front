@@ -15,6 +15,7 @@ import type {
   ConsentApproveResponse,
   FollowStatus,
   FormPhoto,
+  FormPrefillResponse,
   FormSubmitRequest,
   FormSubmitResponse,
   InvitationInfo,
@@ -28,7 +29,6 @@ import type {
   PhoneVerifyResponse,
   ProfileCreateRequest,
   ProfileDetail,
-  ProfileSummary,
   ProfileUpdateRequest,
   PublicProfile,
   RegistrantSummary,
@@ -74,7 +74,19 @@ export const followApi = {
 // 폼 조회는 public 이지만, 제출은 친구(B) 본인 인증(Bearer)이 필요하다. (폼_인증.pdf 2장)
 // 마담 코드(madamId)는 path, B 의 accessToken 은 Authorization 헤더, 프로필 데이터는 body 로 분리해 전달한다.
 export const formApi = {
-  validate: (madamId: string) => unwrap<null>(apiClient.get(`/form/${madamId}`)),
+  /**
+   * 폼 링크 유효성 확인 + prefill 조회. Authorization 이 있으면(=친구 로그인 상태) 기존
+   * 작성분(draft)을 함께 받아 폼을 미리 채운다. (친구_등록_거절_재수정요청 가이드 2장)
+   */
+  getForm: (madamId: string) => {
+    const token = getAccessToken();
+    return unwrap<FormPrefillResponse>(
+      apiClient.get(
+        `/form/${madamId}`,
+        token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+      ),
+    );
+  },
   submit: (madamId: string, body: FormSubmitRequest) =>
     unwrap<FormSubmitResponse>(
       apiClient.post(`/form/${madamId}`, body, {
@@ -104,21 +116,29 @@ export const formApi = {
   },
 };
 
-// ── 5.6 Acquaintance ──────────────────────────────────
+// ── 5.6 Acquaintance (주선자 친구 관리) ────────────────
+// acquaintances→profiles 통합으로 URL 이 /api/profiles/** 로 이전됐다(클린 컷). 상세 조회는
+// profileApi.get(ProfileDetail) 로 일원화하고, 여기엔 친구 관리 액션만 남긴다.
 export const acquaintanceApi = {
-  invite: () => unwrap<InviteLinkResponse>(apiClient.post('/api/acquaintances/invite')),
+  invite: () => unwrap<InviteLinkResponse>(apiClient.post('/api/profiles/invite')),
   /** 마담 본인의 폼 숏링크 조회 — 친구 추가 시 복사할 formUrl 을 반환한다. */
-  myForm: () => unwrap<MyFormResponse>(apiClient.get('/api/acquaintances/my-form')),
-  get: (id: string) => unwrap<AcquaintanceDetail>(apiClient.get(`/api/acquaintances/${id}`)),
-  approve: (id: string) => unwrap<null>(apiClient.post(`/api/acquaintances/${id}/approve`)),
-  reject: (id: string) => unwrap<null>(apiClient.post(`/api/acquaintances/${id}/reject`)),
+  myForm: () => unwrap<MyFormResponse>(apiClient.get('/api/profiles/my-form')),
+  approve: (id: string) => unwrap<null>(apiClient.post(`/api/profiles/${id}/approve`)),
+  reject: (id: string) => unwrap<null>(apiClient.post(`/api/profiles/${id}/reject`)),
+  /**
+   * 승인 대기(PENDING_APPROVAL) 카드에 폼 수정 요청 — 카드를 DRAFT 로 되돌리고
+   * 친구에게 edit_requested 알림을 보낸다. (PENDING_APPROVAL 상태에서만 가능, 그 외 409)
+   */
+  requestEdit: (id: string) =>
+    unwrap<null>(apiClient.post(`/api/profiles/${id}/request-edit`)),
 };
 
 // ── 5.7 Profile (DatingProfile) ───────────────────────
 export const profileApi = {
   create: (body: ProfileCreateRequest) =>
     unwrap<ProfileDetail>(apiClient.post('/api/profiles', body)),
-  listMine: () => unwrap<ProfileSummary[]>(apiClient.get('/api/profiles')),
+  // 통합 후 GET /api/profiles 는 주선자 친구 목록(AcquaintanceDetail[])을 반환한다.
+  listMine: () => unwrap<AcquaintanceDetail[]>(apiClient.get('/api/profiles')),
   listPublic: (params?: { registrantId?: string; gender?: Gender }) =>
     unwrap<PublicProfile[]>(
       apiClient.get('/api/profiles/public', {
