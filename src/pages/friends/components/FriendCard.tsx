@@ -83,8 +83,8 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
           <img
             src={friend.photo}
             alt={friend.name}
-            className={`absolute inset-0 h-full w-full object-cover ${
-              isDeactivated ? 'grayscale' : ''
+            className={`absolute inset-0 h-full w-full object-cover transition-opacity ${
+              isDeactivated ? 'opacity-75' : ''
             }`}
           />
         ) : (
@@ -93,8 +93,9 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
           </span>
         )}
 
-        {/* 비활성 친구는 사진을 흐리게 덮어 '쉬는 중'임을 시각적으로 구분 */}
-        {isDeactivated && <div className="absolute inset-0 bg-white/45" />}
+        {/* 비활성 친구는 색을 빼는(영정사진 느낌) 대신, 색감은 살린 채
+            은은한 흰 베일만 덮어 '잠깐 쉬는 중'인 가벼운 느낌을 준다. */}
+        {isDeactivated && <div className="absolute inset-0 bg-white/25" />}
 
         <span
           className={`absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-pill ${statusBadge.className}`}

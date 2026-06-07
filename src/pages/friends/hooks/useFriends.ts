@@ -45,7 +45,9 @@ function toFriend(profile: ProfileDetail, index: number): Friend {
     requestCount: 0, // 프로필별 받은 매칭 수 API가 없어 0으로 둔다.
     status: profile.status === ProfileStatus.PUBLISHED ? 'approved' : 'pending',
     registrationStatus: profile.status,
-    isActive: profile.status !== ProfileStatus.SUSPENDED,
+    // 활성/비활성 토글은 visibility(PUBLIC/PRIVATE)를 바꾸므로 그 값을 그대로 반영한다.
+    // 정지(SUSPENDED) 프로필도 비활성으로 본다.
+    isActive: profile.status !== ProfileStatus.SUSPENDED && profile.visibility === ProfileVisibility.PUBLIC,
   };
 }
 
@@ -95,6 +97,14 @@ export function useFriends(enabled = true) {
     queryClient.invalidateQueries({ queryKey: queryKeys.profiles.detail(id) });
   };
 
+  // visibility 변경은 목록(GET /api/profiles)과 해당 프로필 상세 양쪽의 visibility 를
+  // 바꾼다. 카드의 활성/비활성은 상세의 visibility 로 판정하므로, 목록뿐 아니라
+  // 상세 쿼리도 함께 무효화해 두 호출이 다시 일어나도록 한다.
+  const invalidateVisibility = (id: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.profiles.mine });
+    queryClient.invalidateQueries({ queryKey: queryKeys.profiles.detail(id) });
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => profileApi.remove(id),
     onSuccess: invalidate,
@@ -102,11 +112,11 @@ export function useFriends(enabled = true) {
   // 비활성화 = 매칭 노출에서 잠시 빼기(비공개), 활성화 = 다시 공개
   const deactivateMutation = useMutation({
     mutationFn: (id: string) => profileApi.setVisibility(id, ProfileVisibility.PRIVATE),
-    onSuccess: invalidate,
+    onSuccess: (_data, id) => invalidateVisibility(id),
   });
   const activateMutation = useMutation({
     mutationFn: (id: string) => profileApi.setVisibility(id, ProfileVisibility.PUBLIC),
-    onSuccess: invalidate,
+    onSuccess: (_data, id) => invalidateVisibility(id),
   });
 
   // 폼 승인/거절/수정요청은 지인(acquaintance) 엔드포인트로 처리한다.
@@ -133,8 +143,9 @@ export function useFriends(enabled = true) {
     isError: listQuery.isError || detailQueries.some((q) => q.isError),
     refetch: listQuery.refetch,
     deleteFriend: deleteMutation.mutate,
-    deactivateFriend: deactivateMutation.mutate,
-    activateFriend: activateMutation.mutate,
+    // 성공/실패에 따라 토스트를 띄울 수 있도록 Promise 를 반환한다.
+    deactivateFriend: deactivateMutation.mutateAsync,
+    activateFriend: activateMutation.mutateAsync,
     // 성공/실패에 따라 토스트·모달을 제어할 수 있도록 Promise 를 반환한다.
     approveFriend: approveMutation.mutateAsync,
     rejectFriend: rejectMutation.mutateAsync,

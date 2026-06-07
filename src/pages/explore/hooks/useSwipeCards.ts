@@ -16,6 +16,7 @@ export interface Profile {
   intro: string;
   contact: string;
   photo?: string;
+  registrant: string;
   cardColor: string;
 }
 
@@ -78,6 +79,7 @@ function toProfile(item: PublicProfile, index: number): Profile {
     intro: item.introduction ?? '',
     contact: '',
     photo: item.firstPhotoUrl ?? undefined,
+    registrant: item.registrantNickname ?? '',
     cardColor: CARD_COLORS[index % CARD_COLORS.length],
   };
 }

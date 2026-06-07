@@ -145,6 +145,8 @@ export interface AcquaintanceDetail {
   hobbies: string | null;
   /** ProfileStatus — DRAFT / PENDING_APPROVAL(승인 대기) / PUBLISHED(승인 완료) 등 */
   registrationStatus: ProfileStatus;
+  /** 매칭 노출 여부. PUBLIC(공개) / PRIVATE(비공개=비활성). */
+  visibility: ProfileVisibility;
   /** 승인(PUBLISHED) 시각. 미승인 시 null */
   verifiedAt: string | null;
   photoUrls: string[];
@@ -192,6 +194,7 @@ export interface PublicProfile {
   hobby: string | null;
   introduction: string | null;
   firstPhotoUrl: string | null;
+  registrantNickname: string;
 }
 
 export interface ProfileDetail {
@@ -199,6 +202,8 @@ export interface ProfileDetail {
   registrantId: string;
   registrantNickname: string;
   status: ProfileStatus;
+  /** 매칭 노출 여부. PUBLIC(공개) / PRIVATE(비공개=비활성). */
+  visibility: ProfileVisibility;
   name: string;
   age: number;
   gender: Gender | null;
