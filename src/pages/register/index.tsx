@@ -496,8 +496,16 @@ const RegisterPage = () => {
 
       // ② 카카오 프사를 쓰지 않고 직접 올린 사진이 있으면 별도 단계로 업로드한다.
       //    (useKakaoPhoto=true면 서버가 카카오 프사를 displayOrder=0 으로 자동 등록)
+      //    수정 모드 재제출처럼 이미 사진이 있으면 추가(POST)가 장수 한도에 걸리므로,
+      //    목록을 먼저 조회해 있으면 교체(PUT), 없으면 신규(POST)로 분기한다.
+      //    (form-photo-edit-guide)
       if (!form.useKakaoPhoto && form.photoFile) {
-        await formApi.uploadPhoto(uploadTokenRef.current, form.photoFile);
+        const photos = await formApi.listPhotos(uploadTokenRef.current);
+        if (photos.length > 0) {
+          await formApi.replacePhoto(uploadTokenRef.current, photos[0].id, form.photoFile);
+        } else {
+          await formApi.uploadPhoto(uploadTokenRef.current, form.photoFile);
+        }
       }
 
       setShowConfirm(false);
