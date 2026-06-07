@@ -228,6 +228,35 @@ const FriendsPage = () => {
     [rejectFriend, selectedFriend, showToast],
   );
 
+  // 활성화: API 성공 시 토스트로 다음 상태를 예고한다. (Predictable hint)
+  const handleActivate = useCallback(
+    async (id: string) => {
+      // 모달이 곧 닫혀 selectedFriend 가 사라지므로 이름을 먼저 붙잡아 둔다.
+      const name = selectedFriend?.name ?? '친구';
+      try {
+        await activateFriend(id);
+        showToast(`${name}님을 다시 활성화했어요.`);
+      } catch {
+        showToast('활성화에 실패했어요. 잠시 후 다시 시도해 주세요.', 4000);
+      }
+    },
+    [activateFriend, selectedFriend, showToast],
+  );
+
+  // 비활성화: 강요·불안 없이 지금 상태만 담담히 알린다. (Suggest over force)
+  const handleDeactivate = useCallback(
+    async (id: string) => {
+      const name = selectedFriend?.name ?? '친구';
+      try {
+        await deactivateFriend(id);
+        showToast(`${name}님을 비활성화했어요.`);
+      } catch {
+        showToast('비활성화에 실패했어요. 잠시 후 다시 시도해 주세요.', 4000);
+      }
+    },
+    [deactivateFriend, selectedFriend, showToast],
+  );
+
   // 폼 수정 요청: 카드 상태별로 동작이 다르다. (form-edit-frontend-guide §2,§3)
   //  - PENDING_APPROVAL / PUBLISHED → request-edit 로 카드를 DRAFT 로 되돌리고
   //    친구에게 edit_requested 알림 발송. 성공해야 친구가 폼을 재제출할 수 있다.
@@ -462,8 +491,8 @@ const FriendsPage = () => {
           onDelete={handleDelete}
           onApprove={handleApprove}
           onReject={handleReject}
-          onDeactivate={deactivateFriend}
-          onActivate={activateFriend}
+          onDeactivate={handleDeactivate}
+          onActivate={handleActivate}
           onRequestReform={handleRequestReform}
         />
       )}
