@@ -87,7 +87,10 @@ export function useFriends(enabled = true) {
 
   // 승인/거절/수정요청은 카드 status 가 들어 있는 상세(detail) 캐시를 바꾸므로
   // 목록뿐 아니라 해당 프로필의 detail 쿼리도 함께 무효화해야 화면이 즉시 갱신된다.
+  // 또한 서버가 처리 직후 form_submitted 알림을 읽음 처리하므로, 알림 목록도 무효화해
+  // 헤더 알림이 즉시 정리되게 한다. (approval-notification-refresh-guide §3)
   const invalidateFriend = (id: string) => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
     queryClient.invalidateQueries({ queryKey: queryKeys.profiles.mine });
     queryClient.invalidateQueries({ queryKey: queryKeys.profiles.detail(id) });
   };
