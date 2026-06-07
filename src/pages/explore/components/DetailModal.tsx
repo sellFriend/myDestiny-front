@@ -45,6 +45,7 @@ export function DetailModal({ profile, onClose }: DetailModalProps) {
   const registeredFriends = friends.filter((f) => f.status === 'approved');
 
   const [showLogin, setShowLogin] = useState(false);
+  const [isImageOpen, setIsImageOpen] = useState(false);
   const [view, setView] = useState<'detail' | 'request' | 'sent'>('detail');
   const [selectedFriendId, setSelectedFriendId] = useState('');
   const [message, setMessage] = useState('');
@@ -139,11 +140,22 @@ export function DetailModal({ profile, onClose }: DetailModalProps) {
           {/* Photo column — 웹에선 좌측 절반을 채우는 큰 사진 영역 */}
           <div className="relative flex-shrink-0 sm:w-1/2">
             {profile.photo ? (
-              <img
-                src={profile.photo}
-                alt={profile.name}
-                className="h-52 w-full object-cover sm:h-full"
-              />
+              <button
+                type="button"
+                onClick={() => setIsImageOpen(true)}
+                className="block h-52 w-full cursor-zoom-in sm:h-full"
+                aria-label="사진 크게 보기"
+              >
+                <img
+                  src={profile.photo}
+                  alt={profile.name}
+                  className="h-full w-full object-cover"
+                />
+                {/* 탭 힌트 — 사진 하단 그라데이션 위에 표기 */}
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center bg-gradient-to-t from-black/45 to-transparent pb-3 pt-8 text-[11px] font-semibold text-white/90">
+                  탭하여 사진 크게 보기
+                </span>
+              </button>
             ) : (
               <div
                 className={`flex h-52 items-center justify-center bg-gradient-to-br ${gradient} sm:h-full`}
@@ -277,6 +289,12 @@ export function DetailModal({ profile, onClose }: DetailModalProps) {
                 <motion.div key="detail" className="flex min-h-0 flex-1 flex-col" {...viewAnim}>
                   {/* Identity header */}
                   <div className={`${accentTint} flex-shrink-0 border-b border-black/5 px-6 pb-5 pt-6`}>
+                    {/* 주선자 — 도메인 용어 대신 관계 문장으로 (UX §5 Cognitive Load) */}
+                    {profile.registrant && (
+                      <p className="mb-1.5 text-xs font-semibold text-black/40">
+                        {profile.registrant}님이 소개하는 친구
+                      </p>
+                    )}
                     <div className="flex items-baseline gap-2">
                       <h2 className="text-2xl font-black text-black sm:text-[1.75rem]">{profile.name}</h2>
                       <span className="text-base font-bold text-black/45">{profile.age}세</span>
@@ -326,6 +344,29 @@ export function DetailModal({ profile, onClose }: DetailModalProps) {
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Image lightbox — 사진을 화면 가득 크게 보기 */}
+      {isImageOpen && profile.photo && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setIsImageOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setIsImageOpen(false)}
+            className="absolute right-4 top-[calc(env(safe-area-inset-top,0px)+1rem)] z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+            aria-label="닫기"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <img
+            src={profile.photo}
+            alt={profile.name}
+            className="max-h-full max-w-full rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
 
       {showLogin && (
         <LoginModal
