@@ -206,6 +206,10 @@ export function FriendDetailModal({
                   alt={friend.name}
                   className="h-full w-full object-cover"
                 />
+                {/* 탭 힌트 — 탐색 상세 모달과 동일하게 사진 하단 그라데이션 위에 표기 */}
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-center bg-gradient-to-t from-black/45 to-transparent pb-3 pt-8 text-[11px] font-semibold text-white/90">
+                  탭하여 사진 크게 보기
+                </span>
               </button>
             ) : (
               <div
