@@ -12,7 +12,6 @@ import { FriendInviteSheet } from '@/pages/friends/components/FriendInviteSheet'
 import { useFriends } from '@/pages/friends/hooks/useFriends';
 
 const INVITE_TITLE = '주선자 친구 초대';
-const INVITE_TEXT = '링크를 눌러 내 친구로 연결해줘요.';
 
 const INVITE_SMS_BODY =
   '친구가 당신을 좋은 사람에게 소개하고 싶어해요.\n간단한 자기소개만 작성해 주세요.\n\n작성한 내용은 주선자가 먼저 확인하고,\n소개가 확정되기 전까지 연락처는 공개되지 않아요.';
@@ -162,7 +161,7 @@ const FriendsPage = () => {
 
     const shareData = {
       title: INVITE_TITLE,
-      text: INVITE_TEXT,
+      text: INVITE_SMS_BODY,
       url: inviteLink,
     };
 
