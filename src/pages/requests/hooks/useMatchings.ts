@@ -59,18 +59,30 @@ export function useMatchingActions() {
     onError,
   });
   const cancel = useMutation({ mutationFn: (id: string) => matchingApi.cancel(id), onSuccess: invalidate, onError });
+  // 성사된 매칭 취소(/cancel-match) — PENDING 취소(/cancel)와는 다른 엔드포인트.
+  // 성공 시 목록을 갱신하고 한 줄 토스트로 알린다. (matching-cancel-after-match §1)
+  const cancelMatch = useMutation({
+    mutationFn: (id: string) => matchingApi.cancelMatch(id),
+    onSuccess: () => {
+      invalidate();
+      setFeedback('성사된 인연을 취소했어요.');
+    },
+    onError,
+  });
 
   // 현재 변이 중인 매칭 id (해당 카드 버튼만 로딩/비활성화)
   const busyId =
     (accept.isPending && accept.variables) ||
     (reject.isPending && reject.variables?.id) ||
     (cancel.isPending && cancel.variables) ||
+    (cancelMatch.isPending && cancelMatch.variables) ||
     null;
 
   return {
     accept: accept.mutate,
     reject: reject.mutate,
     cancel: cancel.mutate,
+    cancelMatch: cancelMatch.mutate,
     busyId,
     feedback,
     clearFeedback: () => setFeedback(null),

@@ -4,6 +4,7 @@ import {
   ProfileStatus,
   ProfileVisibility,
   acquaintanceApi,
+  matchingApi,
   profileApi,
   queryKeys,
   type ProfileDetail,
@@ -28,7 +29,7 @@ function parseHobbies(hobby: string | null): string[] {
     .filter(Boolean);
 }
 
-function toFriend(profile: ProfileDetail, index: number): Friend {
+function toFriend(profile: ProfileDetail, index: number, matchingId?: string): Friend {
   return {
     id: profile.id,
     name: profile.name,
@@ -48,6 +49,9 @@ function toFriend(profile: ProfileDetail, index: number): Friend {
     // 활성/비활성 토글은 visibility(PUBLIC/PRIVATE)를 바꾸므로 그 값을 그대로 반영한다.
     // 정지(SUSPENDED) 프로필도 비활성으로 본다.
     isActive: profile.status !== ProfileStatus.SUSPENDED && profile.visibility === ProfileVisibility.PUBLIC,
+    // 성사 여부는 프로필 응답에 없어 성사 목록(GET /api/matchings/matched)에서 교차 판정한다.
+    isMatched: Boolean(matchingId),
+    matchingId,
   };
 }
 
@@ -76,12 +80,31 @@ export function useFriends(enabled = true) {
     })),
   });
 
+  // 성사된 친구(내 프로필)를 가려내기 위해 성사 목록을 함께 조회한다.
+  // 성사 목록은 MATCHED 만 내려오므로, 여기 들어온 내 프로필 = 성사된 친구다.
+  const matchedQuery = useQuery({
+    queryKey: queryKeys.matchings.matched,
+    queryFn: matchingApi.matched,
+    enabled,
+    refetchInterval: 60_000,
+  });
+
+  // 내 프로필 id → 성사된 매칭 id. (cancel-match 호출과 카드 dim 표시에 쓴다.)
+  const matchedByProfile = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const m of matchedQuery.data ?? []) {
+      map.set(m.requesterProfile.id, m.id);
+      map.set(m.targetProfile.id, m.id);
+    }
+    return map;
+  }, [matchedQuery.data]);
+
   const friends = useMemo(
     () =>
       detailQueries
-        .map((q, index) => (q.data ? toFriend(q.data, index) : null))
+        .map((q, index) => (q.data ? toFriend(q.data, index, matchedByProfile.get(q.data.id)) : null))
         .filter((f): f is Friend => f !== null),
-    [detailQueries],
+    [detailQueries, matchedByProfile],
   );
 
   const invalidate = () =>
@@ -134,6 +157,17 @@ export function useFriends(enabled = true) {
     onSuccess: (_data, id) => invalidateFriend(id),
   });
 
+  // 성사된 매칭 취소 — 성사 목록에서 빠지면서 친구 카드가 다시 활성으로 돌아온다.
+  // 성사 목록·내 프로필·알림을 함께 무효화해 카드 상태와 헤더 알림이 즉시 정리되게 한다.
+  const cancelMatchMutation = useMutation({
+    mutationFn: (matchingId: string) => matchingApi.cancelMatch(matchingId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.matchings.matched });
+      queryClient.invalidateQueries({ queryKey: queryKeys.profiles.mine });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications });
+    },
+  });
+
   const isDetailLoading =
     listQuery.isSuccess && ids.length > 0 && detailQueries.some((q) => q.isLoading);
 
@@ -150,6 +184,7 @@ export function useFriends(enabled = true) {
     approveFriend: approveMutation.mutateAsync,
     rejectFriend: rejectMutation.mutateAsync,
     requestEditFriend: requestEditMutation.mutateAsync,
+    cancelMatchFriend: cancelMatchMutation.mutateAsync,
     isDeleting: deleteMutation.isPending,
   };
 }

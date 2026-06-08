@@ -216,6 +216,15 @@ export const matchingApi = {
   reject: (id: string, reason?: string) =>
     unwrap<MatchingResponse>(apiClient.post(`/api/matchings/${id}/reject`, reason ? { reason } : {})),
   cancel: (id: string) => unwrap<null>(apiClient.post(`/api/matchings/${id}/cancel`)),
+  /**
+   * 성사(MATCHED)된 매칭을 당사자가 취소한다. PENDING 취소(/cancel)와는 다른 엔드포인트.
+   * 취소 시 status 가 CANCELLED_AFTER_MATCH 로 바뀌고 상대에게 match_released 알림이 간다.
+   * (matching-cancel-after-match §1)
+   */
+  cancelMatch: (id: string, reason?: string) =>
+    unwrap<MatchingResponse>(
+      apiClient.post(`/api/matchings/${id}/cancel-match`, reason ? { reason } : {}),
+    ),
   contact: (id: string) => unwrap<MatchingContact>(apiClient.get(`/api/matchings/${id}/contact`)),
 };
 
