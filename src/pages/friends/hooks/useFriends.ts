@@ -29,7 +29,12 @@ function parseHobbies(hobby: string | null): string[] {
     .filter(Boolean);
 }
 
-function toFriend(profile: ProfileDetail, index: number, matchingId?: string): Friend {
+function toFriend(
+  profile: ProfileDetail,
+  index: number,
+  matchingId?: string,
+  hasOutgoingRequest = false,
+): Friend {
   return {
     id: profile.id,
     name: profile.name,
@@ -52,6 +57,8 @@ function toFriend(profile: ProfileDetail, index: number, matchingId?: string): F
     // 성사 여부는 프로필 응답에 없어 성사 목록(GET /api/matchings/matched)에서 교차 판정한다.
     isMatched: Boolean(matchingId),
     matchingId,
+    // 보낸 요청(PENDING) 여부는 목록(GET /api/profiles)의 hasOutgoingRequest 플래그를 따른다.
+    hasOutgoingRequest,
   };
 }
 
@@ -71,6 +78,15 @@ export function useFriends(enabled = true) {
   });
 
   const ids = useMemo(() => listQuery.data?.map((p) => p.id) ?? [], [listQuery.data]);
+
+  // 내 프로필 id → 보낸 요청 진행 중 여부. 목록 응답의 hasOutgoingRequest 를 그대로 들고 있는다.
+  const outgoingByProfile = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const p of listQuery.data ?? []) {
+      map.set(p.id, Boolean(p.hasOutgoingRequest));
+    }
+    return map;
+  }, [listQuery.data]);
 
   const detailQueries = useQueries({
     queries: ids.map((id) => ({
@@ -102,9 +118,18 @@ export function useFriends(enabled = true) {
   const friends = useMemo(
     () =>
       detailQueries
-        .map((q, index) => (q.data ? toFriend(q.data, index, matchedByProfile.get(q.data.id)) : null))
+        .map((q, index) =>
+          q.data
+            ? toFriend(
+                q.data,
+                index,
+                matchedByProfile.get(q.data.id),
+                outgoingByProfile.get(q.data.id),
+              )
+            : null,
+        )
         .filter((f): f is Friend => f !== null),
-    [detailQueries, matchedByProfile],
+    [detailQueries, matchedByProfile, outgoingByProfile],
   );
 
   const invalidate = () =>

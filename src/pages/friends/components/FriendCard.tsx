@@ -26,6 +26,11 @@ export interface Friend {
   isMatched: boolean;
   /** 성사된 매칭 id (isMatched 일 때만 존재). cancel-match 호출에 쓴다. */
   matchingId?: string;
+  /**
+   * 이 친구가 누군가에게 보낸 매칭 요청이 진행 중(PENDING)인 상태.
+   * 요청 걸기는 한 사람에게만 가능하므로, 매칭 요청 보낼 친구 선택에서 제외한다.
+   */
+  hasOutgoingRequest: boolean;
 }
 
 interface FriendCardProps {
