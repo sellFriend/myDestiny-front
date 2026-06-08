@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import { useAuth } from '@/contexts/AuthContext';
 import { AppHeader } from '@/components/AppHeader';
@@ -40,9 +40,17 @@ const HomePage = () => {
       </main>
 
       <footer className="px-6 py-8 border-t border-black/10 bg-white">
-        <div className="max-w-5xl mx-auto flex items-center justify-between text-sm text-black/40">
-          <span className="font-black tracking-tight">My Destiny</span>
-          <span>© 2026 SellFriend. All rights reserved.</span>
+        <div className="max-w-5xl mx-auto flex flex-col items-center gap-3 text-sm text-black/40 sm:flex-row sm:justify-between">
+          <span className="font-black tracking-tight">내인연 (My Destiny)</span>
+          <div className="flex items-center gap-4">
+            <Link to={ROUTES.PRIVACY} className="hover:text-black/70 transition-colors">
+              개인정보처리방침
+            </Link>
+            <Link to={ROUTES.TERMS} className="hover:text-black/70 transition-colors">
+              이용약관
+            </Link>
+            <span>© 2026 SellFriend. All rights reserved.</span>
+          </div>
         </div>
       </footer>
 
