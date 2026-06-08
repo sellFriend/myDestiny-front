@@ -1,17 +1,19 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { ROUTES } from '@/constants/routes';
 import { ScrollToTop } from '@/components/ScrollToTop';
+import { RouteErrorBoundary } from '@/components/ErrorBoundary';
+import { lazyWithRetry } from '@/utils/lazyWithRetry';
 
-const HomePage = lazy(() => import('@/pages/home'));
-const LoginPage = lazy(() => import('@/pages/login'));
-const OAuthCallbackPage = lazy(() => import('@/pages/oauth-callback'));
-const ExplorePage = lazy(() => import('@/pages/explore'));
-const FriendsPage = lazy(() => import('@/pages/friends'));
-const RequestsPage = lazy(() => import('@/pages/requests'));
-const RegisterPage = lazy(() => import('@/pages/register'));
-const BlockedPage = lazy(() => import('@/pages/blocked'));
-const LegalPage = lazy(() => import('@/pages/legal'));
+const HomePage = lazyWithRetry(() => import('@/pages/home'));
+const LoginPage = lazyWithRetry(() => import('@/pages/login'));
+const OAuthCallbackPage = lazyWithRetry(() => import('@/pages/oauth-callback'));
+const ExplorePage = lazyWithRetry(() => import('@/pages/explore'));
+const FriendsPage = lazyWithRetry(() => import('@/pages/friends'));
+const RequestsPage = lazyWithRetry(() => import('@/pages/requests'));
+const RegisterPage = lazyWithRetry(() => import('@/pages/register'));
+const BlockedPage = lazyWithRetry(() => import('@/pages/blocked'));
+const LegalPage = lazyWithRetry(() => import('@/pages/legal'));
 
 function PageFallback() {
   return (
@@ -28,6 +30,7 @@ function withSuspense(element: React.ReactNode) {
 export const router = createBrowserRouter([
   {
     element: <ScrollToTop />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         path: ROUTES.HOME,

@@ -908,14 +908,14 @@ const RegisterPage = () => {
                   show={revealStage >= 1}
                   fieldKey="intro"
                   label="한 줄 소개"
-                  hint="어떤 사람인지 한두 문장으로 편하게 적어주세요."
+                  hint="어떤 사람인지, 또 어떤 분을 만나고 싶은지 편하게 적어주세요."
                   border={false}
                 >
                   <div className="rounded-block border border-black/10 bg-black/[0.015] px-5 py-4 transition-colors focus-within:border-black/40">
                     <textarea
                       value={form.intro}
                       onChange={(e) => updateField("intro", e.target.value)}
-                      placeholder="예: 여행과 사진을 좋아하는 자유로운 영혼이에요."
+                      placeholder="예: 여행과 사진을 좋아해요. 함께 일상을 나눌 따뜻한 분을 만나고 싶어요."
                       rows={4}
                       maxLength={300}
                       className="w-full resize-none bg-transparent text-lg leading-relaxed text-black outline-none placeholder:text-black/25"

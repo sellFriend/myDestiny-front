@@ -27,6 +27,10 @@ export function notificationMeta(type: NType): { title: string; desc: string } {
       return { title: '매칭 요청 기한이 만료됐어요', desc: '응답 기한이 지났어요' };
     case NotificationType.MATCH_CONSENT_EXPIRED:
       return { title: '당사자 동의 기한이 만료됐어요', desc: '동의 기한이 지났어요' };
+    case NotificationType.MATCH_CANCELLED:
+      return { title: '매칭 요청이 취소됐어요', desc: '상대가 다른 분과 매칭됐어요' };
+    case NotificationType.MATCH_RELEASED:
+      return { title: '성사된 매칭이 취소됐어요', desc: '상대가 매칭을 취소했어요' };
     default:
       return { title: '새로운 알림이 있어요', desc: '확인해 주세요' };
   }

@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ROUTES } from '@/constants/routes';
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ROUTES } from "@/constants/routes";
 
 interface HeroSectionProps {
   onRegisterFriend: () => void;
@@ -16,13 +16,14 @@ export function HeroSection({ onRegisterFriend }: HeroSectionProps) {
         <p className="text-sm font-mono uppercase tracking-widest text-black/40 mb-6">
           Acquaintance-based matching
         </p>
-        <h1 className="text-5xl md:text-7xl font-black text-black leading-[0.95] tracking-tighter mb-8 ">
-          좋은 사람은,<br />
+        <h1 className="text-5xl md:text-7xl font-black text-black leading-[1.15] tracking-tighter mb-8 ">
+          좋은 사람은,
+          <br />
           가까운 사람이 더 잘 아니까.
         </h1>
         <p className="text-lg text-black/60 mb-10 max-w-xl mx-auto leading-relaxed">
-          신뢰할 수 있는 지인 소개 기반 매칭 플랫폼. <br />
-          친구가 대신 소개하고 연결해주는 새로운 만남.
+          신뢰할 수 있는 지인 소개 기반 매칭 플랫폼 <br />
+          친구가 대신 소개하고 연결해주는 새로운 만남
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -51,9 +52,9 @@ export function HeroSection({ onRegisterFriend }: HeroSectionProps) {
 
 function StackedCardPreview() {
   const cards = [
-    { color: 'bg-pastel-lilac', rotate: -6, zIndex: 0 },
-    { color: 'bg-pastel-cream', rotate: -3, zIndex: 10 },
-    { color: 'bg-white border border-black/10', rotate: 0, zIndex: 20 },
+    { color: "bg-pastel-lilac", rotate: -6, zIndex: 0 },
+    { color: "bg-pastel-cream", rotate: -3, zIndex: 10 },
+    { color: "bg-white border border-black/10", rotate: 0, zIndex: 20 },
   ];
 
   return (
@@ -64,14 +65,10 @@ function StackedCardPreview() {
           className={`absolute inset-0 ${card.color} rounded-block shadow-lg`}
           style={{ zIndex: card.zIndex }}
           initial={{ rotate: card.rotate }}
-          animate={
-            i === 2
-              ? { x: [0, 8, 0, -8, 0] }
-              : { rotate: card.rotate }
-          }
+          animate={i === 2 ? { x: [0, 8, 0, -8, 0] } : { rotate: card.rotate }}
           transition={
             i === 2
-              ? { duration: 8, repeat: Infinity, ease: 'easeInOut' }
+              ? { duration: 8, repeat: Infinity, ease: "easeInOut" }
               : undefined
           }
         >
@@ -84,7 +81,6 @@ function StackedCardPreview() {
           )}
         </motion.div>
       ))}
-
     </div>
   );
 }
