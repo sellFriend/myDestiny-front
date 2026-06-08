@@ -22,6 +22,10 @@ export interface Friend {
   registrationStatus: ProfileStatus;
   /** 등록된 친구가 매칭 요청을 잠시 받지 않도록 비활성화한 상태. (status === 'approved' 일 때만 의미 있음) */
   isActive: boolean;
+  /** 다른 분과 매칭이 성사된 상태. 성사된 매칭의 id 를 함께 들고 있어 '성사 취소'에 쓴다. */
+  isMatched: boolean;
+  /** 성사된 매칭 id (isMatched 일 때만 존재). cancel-match 호출에 쓴다. */
+  matchingId?: string;
 }
 
 interface FriendCardProps {
@@ -56,13 +60,19 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
     ? `${friend.school} · ${friend.major}`
     : friend.occupation;
 
-  const isDeactivated = friend.status === 'approved' && !friend.isActive;
+  // 성사됨은 비활성보다 우선한다(둘 다 '잠시 매칭에서 빠진' 상태지만 맥락이 다름).
+  const isMatched = friend.isMatched;
+  const isDeactivated = !isMatched && friend.status === 'approved' && !friend.isActive;
+  // 성사·비활성 모두 카드 색을 옅게 덮어 '지금은 매칭 대상이 아님'을 보여준다.
+  const isDimmed = isMatched || isDeactivated;
   const statusBadge =
     friend.status === 'pending'
       ? { label: '승인 대기', className: 'bg-white/85 text-black/60' }
-      : isDeactivated
-        ? { label: '비활성', className: 'bg-black/55 text-white backdrop-blur-sm' }
-        : { label: '등록됨', className: 'bg-black text-white' };
+      : isMatched
+        ? { label: '성사됨', className: 'bg-black/55 text-white backdrop-blur-sm' }
+        : isDeactivated
+          ? { label: '비활성', className: 'bg-black/55 text-white backdrop-blur-sm' }
+          : { label: '등록됨', className: 'bg-black text-white' };
 
   return (
     <div
@@ -84,7 +94,7 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
             src={friend.photo}
             alt={friend.name}
             className={`absolute inset-0 h-full w-full object-cover transition-opacity ${
-              isDeactivated ? 'opacity-75' : ''
+              isDimmed ? 'opacity-75' : ''
             }`}
           />
         ) : (
@@ -93,9 +103,9 @@ export function FriendCard({ friend, onClick }: FriendCardProps) {
           </span>
         )}
 
-        {/* 비활성 친구는 색을 빼는(영정사진 느낌) 대신, 색감은 살린 채
-            은은한 흰 베일만 덮어 '잠깐 쉬는 중'인 가벼운 느낌을 준다. */}
-        {isDeactivated && <div className="absolute inset-0 bg-white/25" />}
+        {/* 비활성·성사된 친구는 색을 빼는(영정사진 느낌) 대신, 색감은 살린 채
+            은은한 흰 베일만 덮어 '잠깐 매칭에서 빠진' 가벼운 느낌을 준다. */}
+        {isDimmed && <div className="absolute inset-0 bg-white/25" />}
 
         <span
           className={`absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-pill ${statusBadge.className}`}

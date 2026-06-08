@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, useAnimationControls, useDragControls, type PanInfo } from 'framer-motion';
-import { Bell, BellOff, Check, Pencil, Trash2, X } from 'lucide-react';
+import { Bell, BellOff, Check, HeartOff, Pencil, Trash2, X } from 'lucide-react';
 import { type Friend } from '@/pages/friends/components/FriendCard';
 
 /** 아래로 끌어 닫는 임계값 — 거리(px) 또는 속도 */
@@ -18,6 +18,8 @@ interface FriendDetailModalProps {
   onActivate: (id: string) => void;
   /** 폼 재수정 요청: 새 숏링크 생성 + 클립보드 복사 + 토스트. 복사 성공 여부를 반환. */
   onRequestReform: (friend: Friend) => Promise<boolean> | boolean;
+  /** 성사된 매칭 취소: 페이지가 API 성공 시 토스트와 함께 모달을 닫는다. */
+  onCancelMatch: (friend: Friend) => void;
 }
 
 // 사진이 없을 때만 쓰이는 옅은 폴백 그라디언트
@@ -49,12 +51,13 @@ export function FriendDetailModal({
   onDeactivate,
   onActivate,
   onRequestReform,
+  onCancelMatch,
 }: FriendDetailModalProps) {
   const [isImageOpen, setIsImageOpen] = useState(false);
   // 폼 재수정 요청 후 모달 안에 남기는 인라인 흔적 (토스트와 이중 피드백)
   const [reformRequested, setReformRequested] = useState(false);
-  // 되돌릴 수 없는 파괴 액션(거절/삭제)은 한 번 더 확인받는다.
-  const [confirming, setConfirming] = useState<null | 'reject' | 'delete'>(null);
+  // 되돌릴 수 없거나 상대에게 영향을 주는 액션(거절/삭제/성사 취소)은 한 번 더 확인받는다.
+  const [confirming, setConfirming] = useState<null | 'reject' | 'delete' | 'cancelMatch'>(null);
 
   // ── 모바일 전체화면 시트 드래그 제어 ─────────────────────────────────
   const [viewportH, setViewportH] = useState(() =>
@@ -123,7 +126,9 @@ export function FriendDetailModal({
     : friend.occupation;
 
   const isPending = friend.status === 'pending';
-  const isDeactivated = friend.status === 'approved' && !friend.isActive;
+  // 성사됨은 비활성보다 우선한다(카드와 동일 규칙).
+  const isMatched = friend.isMatched;
+  const isDeactivated = !isMatched && friend.status === 'approved' && !friend.isActive;
 
   // 파괴 액션은 confirming 단계를 거친 뒤에만 실제로 실행한다.
   const handleConfirm = () => {
@@ -133,6 +138,9 @@ export function FriendDetailModal({
     } else if (confirming === 'delete') {
       onDelete(friend.id);
       onClose();
+    } else if (confirming === 'cancelMatch') {
+      // 성사 취소도 페이지가 API 성공 시 토스트와 함께 모달을 닫는다.
+      onCancelMatch(friend);
     }
   };
 
@@ -225,12 +233,12 @@ export function FriendDetailModal({
               className={`absolute top-4 left-4 rounded-pill px-3 py-1 text-[11px] font-semibold ${
                 isPending
                   ? 'bg-white/90 text-black/60 backdrop-blur-sm'
-                  : isDeactivated
+                  : isMatched || isDeactivated
                     ? 'bg-black/55 text-white backdrop-blur-sm'
                     : 'bg-black text-white'
               }`}
             >
-              {isPending ? '승인 대기' : isDeactivated ? '비활성' : '등록된 친구'}
+              {isPending ? '승인 대기' : isMatched ? '성사됨' : isDeactivated ? '비활성' : '등록된 친구'}
             </span>
           </div>
 
@@ -260,6 +268,11 @@ export function FriendDetailModal({
               {isDeactivated && (
                 <p className="rounded-2xl bg-black/[0.04] px-4 py-3 text-sm leading-relaxed text-black/55">
                   지금은 매칭 요청을 받지 않아요. 다시 활성화하면 소개를 받을 수 있어요.
+                </p>
+              )}
+              {isMatched && (
+                <p className="rounded-2xl bg-black/[0.04] px-4 py-3 text-sm leading-relaxed text-black/55">
+                  다른 분과 인연이 성사돼 지금은 매칭에서 빠져 있어요. 성사를 취소하면 다시 소개를 받을 수 있어요.
                 </p>
               )}
 
@@ -307,23 +320,42 @@ export function FriendDetailModal({
               )}
 
               {confirming ? (
-                /* 파괴 액션 확인 단계 — 위계 최상단에 경고, 실행은 적색 버튼으로만 */
+                /* 확인 단계 — 위계 최상단에 안내. 파괴 액션은 적색, 성사 취소는 중립 버튼으로 구분 */
                 <>
                   <p className="text-center text-sm leading-relaxed text-black/60">
                     {confirming === 'reject'
                       ? '등록을 거절하면 이 친구의 폼이 삭제돼요. 계속할까요?'
-                      : '친구를 삭제하면 되돌릴 수 없어요. 계속할까요?'}
+                      : confirming === 'delete'
+                        ? '친구를 삭제하면 되돌릴 수 없어요. 계속할까요?'
+                        : '성사를 취소하면 상대에게 알림이 가고, 두 분 모두 다시 매칭할 수 있어요. 계속할까요?'}
                   </p>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => setConfirming(null)} className={ghostBtn}>
-                      취소
+                      닫기
                     </button>
-                    <button type="button" onClick={handleConfirm} className={dangerBtn}>
-                      <Trash2 className="h-4 w-4" />
-                      {confirming === 'reject' ? '거절하기' : '삭제하기'}
-                    </button>
+                    {confirming === 'cancelMatch' ? (
+                      <button type="button" onClick={handleConfirm} className={primaryBtn}>
+                        <HeartOff className="h-4 w-4" />
+                        성사 취소하기
+                      </button>
+                    ) : (
+                      <button type="button" onClick={handleConfirm} className={dangerBtn}>
+                        <Trash2 className="h-4 w-4" />
+                        {confirming === 'reject' ? '거절하기' : '삭제하기'}
+                      </button>
+                    )}
                   </div>
                 </>
+              ) : isMatched ? (
+                /* 성사됨: 다른 액션 없이 '성사 취소하기' 단일 버튼만 (한 번 더 확인) */
+                <button
+                  type="button"
+                  onClick={() => setConfirming('cancelMatch')}
+                  className={`${ghostBtn} w-full`}
+                >
+                  <HeartOff className="h-4 w-4" />
+                  성사 취소하기
+                </button>
               ) : isPending ? (
                 /* 승인 대기: 등록됨 모달과 동일하게 상단 2버튼(행) + 하단 파괴 액션 레이아웃 */
                 <>

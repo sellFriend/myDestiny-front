@@ -42,7 +42,8 @@ const RequestsPage = () => {
 
   const { isLoggedIn, loginWithKakao } = useAuth();
   const { received, sent, matched, pendingReceivedCount } = useMatchings(tab, isLoggedIn);
-  const { accept, reject, cancel, busyId, feedback, clearFeedback } = useMatchingActions();
+  const { accept, reject, cancel, cancelMatch, busyId, feedback, clearFeedback } =
+    useMatchingActions();
 
   // 거절 버튼 → 사유 다이얼로그 열기 (상세 모달이 열려 있으면 닫고 다이얼로그로 전환)
   const requestReject = (id: string) => {
@@ -261,6 +262,10 @@ const RequestsPage = () => {
           onReject={requestReject}
           onCancel={(id) => {
             cancel(id);
+            setDetailTarget(null);
+          }}
+          onCancelMatch={(id) => {
+            cancelMatch(id);
             setDetailTarget(null);
           }}
         />

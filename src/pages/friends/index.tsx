@@ -70,6 +70,7 @@ const FriendsPage = () => {
     approveFriend,
     rejectFriend,
     requestEditFriend,
+    cancelMatchFriend,
   } = useFriends(isLoggedIn);
   const [tab, setTab] = useState<FriendTab>('registered');
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
@@ -269,6 +270,22 @@ const FriendsPage = () => {
       }
     },
     [deactivateFriend, selectedFriend, showToast],
+  );
+
+  // 성사 취소: API 성공 시 토스트를 띄우고 모달을 닫는다. 성사 목록에서 빠지며 카드가 다시 활성화된다.
+  const handleCancelMatch = useCallback(
+    async (friend: Friend) => {
+      if (!friend.matchingId) return;
+      const name = friend.name;
+      try {
+        await cancelMatchFriend(friend.matchingId);
+        setSelectedFriend(null);
+        showToast(`${name}님의 성사를 취소했어요.`);
+      } catch {
+        showToast('성사 취소에 실패했어요. 잠시 후 다시 시도해 주세요.', 4000);
+      }
+    },
+    [cancelMatchFriend, showToast],
   );
 
   // 폼 수정 요청: 카드 상태별로 동작이 다르다. (form-edit-frontend-guide §2,§3)
@@ -540,6 +557,7 @@ const FriendsPage = () => {
           onDeactivate={handleDeactivate}
           onActivate={handleActivate}
           onRequestReform={handleRequestReform}
+          onCancelMatch={handleCancelMatch}
         />
       )}
 

@@ -54,6 +54,8 @@ export const MatchingStatus = {
   CONSENT_REJECTED: 'CONSENT_REJECTED',
   CONSENT_EXPIRED: 'CONSENT_EXPIRED',
   MATCHED: 'MATCHED',
+  /** 성사(MATCHED) 후 당사자가 직접 매칭을 취소함. (matching-cancel-after-match §3) */
+  CANCELLED_AFTER_MATCH: 'CANCELLED_AFTER_MATCH',
 } as const;
 export type MatchingStatus = (typeof MatchingStatus)[keyof typeof MatchingStatus];
 
@@ -84,5 +86,9 @@ export const NotificationType = {
   MATCH_CONSENT_EXPIRED: 'match_consent_expired',
   /** 주선자가 친구의 승인 대기 카드에 폼 수정을 요청함 (수신자 = 친구) */
   EDIT_REQUESTED: 'edit_requested',
+  /** 내가 보낸 요청이 상대의 다른 성사로 자동 취소됨 → 매칭 status: CANCELLED (matching-request-limit §1) */
+  MATCH_CANCELLED: 'match_cancelled',
+  /** 성사된 매칭을 상대 당사자가 직접 취소함 → 매칭 status: CANCELLED_AFTER_MATCH (matching-cancel-after-match §2) */
+  MATCH_RELEASED: 'match_released',
 } as const;
 export type NotificationType = (typeof NotificationType)[keyof typeof NotificationType];

@@ -46,6 +46,7 @@ export function matchingSteps(status: MatchingStatusType): {
     [MatchingStatus.CONSENT_REJECTED]: '인연이 무산됐어요',
     [MatchingStatus.CONSENT_EXPIRED]: '인연이 무산됐어요',
     [MatchingStatus.CANCELLED]: '요청이 취소됐어요',
+    [MatchingStatus.CANCELLED_AFTER_MATCH]: '성사가 취소됐어요',
     [MatchingStatus.EXPIRED]: '응답 기한이 지났어요',
   };
   if (terminalLabel[status]) {
@@ -88,6 +89,8 @@ export function statusMeta(status: MatchingStatusType): { label: string; classNa
       return { label: '무산됨', className: 'bg-black/10 text-black/40' };
     case MatchingStatus.CANCELLED:
       return { label: '취소함', className: 'bg-black/10 text-black/40' };
+    case MatchingStatus.CANCELLED_AFTER_MATCH:
+      return { label: '성사 취소됨', className: 'bg-black/10 text-black/40' };
     case MatchingStatus.EXPIRED:
     case MatchingStatus.CONSENT_EXPIRED:
       return { label: '기한 만료', className: 'bg-black/10 text-black/40' };

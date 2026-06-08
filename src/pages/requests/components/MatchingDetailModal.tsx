@@ -33,6 +33,8 @@ interface MatchingDetailModalProps {
   onAccept?: (id: string) => void;
   onReject?: (id: string) => void;
   onCancel?: (id: string) => void;
+  /** 성사된 매칭 취소(/cancel-match). 성사됨 탭 상세에서만 노출된다. */
+  onCancelMatch?: (id: string) => void;
 }
 
 /** 닉네임이 나(본인)인지 — '나님' 같은 어색한 표기를 피하기 위한 판별 */
@@ -143,10 +145,13 @@ export function MatchingDetailModal({
   onAccept,
   onReject,
   onCancel,
+  onCancelMatch,
 }: MatchingDetailModalProps) {
   const isMatched = variant === 'matched';
   // 성사된 인연은 두 사람이 동등하게 중요하므로 내 지인도 기본으로 펼친다.
   const [isMineOpen, setIsMineOpen] = useState(isMatched);
+  // 성사 취소는 상대에게 영향을 주므로 인라인 확인 단계를 거친다.
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
   const dragControls = useDragControls();
 
   // 모바일에서만 바텀 시트(그래버·끌어내려 닫기)로, 데스크탑은 중앙 모달 + X 버튼으로 동작
@@ -406,6 +411,44 @@ export function MatchingDetailModal({
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               요청 취소
             </button>
+          </div>
+        ) : isMatched ? (
+          /* 성사됨: 최하단에 위계를 가장 낮춘 텍스트 버튼으로 '성사 취소하기'를 둔다.
+             되돌릴 수 없진 않지만 상대에게 알림이 가므로 인라인 확인을 거친다. */
+          <div className="shrink-0 border-t border-black/[0.06] px-6 py-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
+            {confirmingCancel ? (
+              <div className="space-y-3">
+                <p className="text-center text-sm leading-relaxed text-black/55">
+                  성사를 취소하면 상대에게 알림이 가고, 두 분 모두 다시 매칭할 수 있어요. 계속할까요?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingCancel(false)}
+                    className={`${ghostBtn} flex-1`}
+                  >
+                    닫기
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => onCancelMatch?.(matching.id)}
+                    className={`${ghostBtn} flex-1`}
+                  >
+                    {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                    성사 취소하기
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingCancel(true)}
+                className="w-full py-1 text-sm font-medium text-black/40 transition-colors hover:text-black/70"
+              >
+                성사 취소하기
+              </button>
+            )}
           </div>
         ) : null}
       </motion.div>
