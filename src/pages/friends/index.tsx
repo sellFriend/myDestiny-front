@@ -12,6 +12,10 @@ import { FriendInviteSheet } from '@/pages/friends/components/FriendInviteSheet'
 import { useFriends } from '@/pages/friends/hooks/useFriends';
 
 const INVITE_TITLE = '주선자 친구 초대';
+const REFORM_TITLE = '폼 수정 요청';
+
+/** 공유 시트가 어떤 맥락으로 열렸는지 — 초대 / 폼 수정 요청에 따라 문구·메시지 본문이 달라진다. */
+type ShareMode = 'invite' | 'reform';
 
 const INVITE_SMS_BODY =
   '친구가 당신을 좋은 사람에게 소개하고 싶어해요.\n간단한 자기소개만 작성해 주세요.\n\n작성한 내용은 주선자가 먼저 확인하고,\n소개가 확정되기 전까지 연락처는 공개되지 않아요.\n';
@@ -72,6 +76,9 @@ const FriendsPage = () => {
   const [inviteLink, setInviteLink] = useState('');
   const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isInviteSheetOpen, setIsInviteSheetOpen] = useState(false);
+  // 공유 시트 맥락(초대/수정 요청)과 수정 요청 대상 친구 이름 — 시트 문구에 쓰인다.
+  const [shareMode, setShareMode] = useState<ShareMode>('invite');
+  const [reformName, setReformName] = useState('');
   const [toast, setToast] = useState('');
   const toastTimerRef = useRef<number | null>(null);
 
@@ -104,6 +111,7 @@ const FriendsPage = () => {
       return;
     }
     setInviteLink(link);
+    setShareMode('invite');
 
     // 웹/앱 모두 클립보드에 먼저 복사한다.
     const copied = await writeClipboard(link);
@@ -160,8 +168,8 @@ const FriendsPage = () => {
     }
 
     const shareData = {
-      title: INVITE_TITLE,
-      text: INVITE_SMS_BODY,
+      title: shareMode === 'reform' ? REFORM_TITLE : INVITE_TITLE,
+      text: shareMode === 'reform' ? REFORM_SMS_BODY : INVITE_SMS_BODY,
       url: inviteLink,
     };
 
@@ -184,7 +192,7 @@ const FriendsPage = () => {
 
       await copyInviteLink(fallbackMessage ?? '공유 창을 열지 못해 링크를 복사했어요');
     }
-  }, [copyInviteLink, inviteLink]);
+  }, [copyInviteLink, inviteLink, shareMode]);
 
   const handleSmsShare = useCallback(async () => {
     if (!inviteLink) {
@@ -196,8 +204,9 @@ const FriendsPage = () => {
       return;
     }
 
-    window.location.href = createSmsUrl(inviteLink, INVITE_SMS_BODY);
-  }, [copyInviteLink, inviteLink]);
+    const body = shareMode === 'reform' ? REFORM_SMS_BODY : INVITE_SMS_BODY;
+    window.location.href = createSmsUrl(inviteLink, body);
+  }, [copyInviteLink, inviteLink, shareMode]);
 
   const handleDelete = (id: string) => {
     deleteFriend(id);
@@ -297,13 +306,21 @@ const FriendsPage = () => {
         showToast('수정 링크를 만들지 못했어요. 잠시 후 다시 시도해 주세요.', 4000);
         return false;
       }
+      setInviteLink(link);
       const copied = await writeClipboard(link);
+      setIsLinkCopied(copied);
 
-      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        window.location.href = createSmsUrl(link, REFORM_SMS_BODY);
-        return true;
+      if (isAppViewport()) {
+        // 앱: 메시지 앱으로 즉시 튕기지 않는다. 상세 시트를 닫고, 초대와 동일한 공유 시트를 열어
+        // 사용자가 복사·메시지·더보기 중 직접 채널을 고르게 한다. (의도치 않은 이탈 방지)
+        setShareMode('reform');
+        setReformName(friend.name);
+        setSelectedFriend(null);
+        setIsInviteSheetOpen(true);
+        return false;
       }
 
+      // 웹: 시트 없이 토스트로만 복사 완료를 알린다. (상세 모달은 인라인 흔적도 함께 노출)
       showToast(
         copied
           ? `${friend.name}님께 보낼 수정 링크를 복사했어요. 붙여넣어 보내 주세요.`
@@ -318,6 +335,24 @@ const FriendsPage = () => {
   const registeredFriends = friends.filter((f) => f.status === 'approved');
   const pendingFriends = friends.filter((f) => f.status === 'pending');
   const visibleFriends = tab === 'registered' ? registeredFriends : pendingFriends;
+
+  // 공유 시트 문구 — 초대/수정 요청 맥락에 맞춰 제목·설명을 바꾼다.
+  const shareSheetTitle =
+    shareMode === 'reform' ? `${reformName}님께 수정 요청을 보냈어요` : '친구를 초대해 볼까요?';
+  const shareSheetDescription =
+    shareMode === 'reform' ? (
+      <>
+        아래 링크를 친구에게 전달하면
+        <br />
+        폼을 다시 작성할 수 있어요.
+      </>
+    ) : (
+      <>
+        링크를 받은 친구가 등록하면
+        <br />
+        바로 내 친구로 연결돼요.
+      </>
+    );
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -509,6 +544,8 @@ const FriendsPage = () => {
       )}
 
       <FriendInviteSheet
+        title={shareSheetTitle}
+        description={shareSheetDescription}
         inviteLink={inviteLink}
         isCopied={isLinkCopied}
         isOpen={isInviteSheetOpen}

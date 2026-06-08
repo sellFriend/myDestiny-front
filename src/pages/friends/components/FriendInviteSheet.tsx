@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 
 interface FriendInviteSheetProps {
+  /** 시트 제목 — 초대/수정 요청 등 맥락에 맞게 주입한다. */
+  title: string;
+  /** 제목 아래 보조 설명 (줄바꿈 등 자유 노드 허용) */
+  description: ReactNode;
   inviteLink: string;
   isCopied: boolean;
   isOpen: boolean;
@@ -44,6 +48,8 @@ function ChannelButton({ icon, label, onClick }: ChannelButtonProps) {
 }
 
 export function FriendInviteSheet({
+  title,
+  description,
   inviteLink,
   isCopied,
   isOpen,
@@ -113,12 +119,10 @@ export function FriendInviteSheet({
               <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)] pt-3">
                 <div>
                   <h3 className="text-[1.4rem] font-bold leading-snug tracking-tight text-black">
-                    친구를 초대해 볼까요?
+                    {title}
                   </h3>
                   <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-black/50">
-                    링크를 받은 친구가 등록하면
-                    <br />
-                    바로 내 친구로 연결돼요.
+                    {description}
                   </p>
                 </div>
 
