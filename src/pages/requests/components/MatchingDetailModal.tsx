@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion, useDragControls, type PanInfo } from 'framer-motion';
-import { Check, ChevronDown, Clock, Heart, Loader2, X } from 'lucide-react';
+import { AnimatePresence, motion, useDragControls, type PanInfo } from 'framer-motion';
+import { Check, ChevronDown, Clock, Heart, HeartOff, Loader2, X } from 'lucide-react';
 import {
   MatchingStatus,
   matchingApi,
@@ -150,7 +150,7 @@ export function MatchingDetailModal({
   const isMatched = variant === 'matched';
   // 성사된 인연은 두 사람이 동등하게 중요하므로 내 지인도 기본으로 펼친다.
   const [isMineOpen, setIsMineOpen] = useState(isMatched);
-  // 성사 취소는 상대에게 영향을 주므로 인라인 확인 단계를 거친다.
+  // 성사 취소는 상대에게 영향을 주므로, 본문을 가린 포커스 오버레이로 확인을 받는다.
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const dragControls = useDragControls();
 
@@ -370,11 +370,87 @@ export function MatchingDetailModal({
             </p>
           )}
 
-          {/* 성사됨 — 연락처를 별도 모달 없이 여기서 바로 (progressive disclosure) */}
+          {/* 성사됨 — 연락처 + 성사 취소를 본문 하단에 둔다. (고정 푸터가 아니라 스크롤 영역 안) */}
           {isMatched && (
             <section className="mt-5">
               <p className="mb-2.5 text-[11px] font-semibold text-black/35">연락처</p>
               <ContactReveal matchingId={matching.id} />
+
+              {/* 성사 취소 — 연락처 아래, 위계 가장 낮춤. 고정 푸터가 아니라 본문 흐름 안.
+                  같은 자리에서 텍스트 버튼 → '인연을 정리하는 순간' 카드로 생동감 있게 펼쳐진다. */}
+              <motion.div
+                layout
+                transition={{ layout: { type: 'spring', stiffness: 460, damping: 36 } }}
+                className="mt-7"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {confirmingCancel ? (
+                    <motion.div
+                      key="confirm"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 8 }}
+                      transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+                      className="text-center"
+                    >
+                      {/* 끊어지는 인연을 코랄빛 하트로 — 작은 팝으로 감정의 무게를 얹는다 */}
+                      <motion.div
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: 'spring', stiffness: 520, damping: 20, delay: 0.05 }}
+                        className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-pastel-coral/15"
+                      >
+                        <HeartOff className="h-5 w-5 text-pastel-coral" />
+                      </motion.div>
+                      <p className="break-keep text-[15px] font-bold text-black">
+                        이 인연을 취소할까요?
+                      </p>
+                      <p className="mx-auto mt-1.5 max-w-[15rem] break-keep text-[13px] leading-relaxed text-black/50">
+                        상대에게도 소식이 전해져요. 마음이 바뀌면 언제든 다시 이어질 수 있어요.
+                      </p>
+                      {/* 버튼은 살짝 뒤따라 올라와 층이 생긴 느낌을 준다 (staggered reveal) */}
+                      <motion.div
+                        className="mt-4 flex gap-2"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.12, duration: 0.2, ease: 'easeOut' }}
+                      >
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => setConfirmingCancel(false)}
+                          className={`${ghostBtn} flex-1`}
+                        >
+                          그대로 둘게요
+                        </motion.button>
+                        <motion.button
+                          type="button"
+                          whileTap={{ scale: 0.97 }}
+                          disabled={busy}
+                          onClick={() => onCancelMatch?.(matching.id)}
+                          className={`${ghostBtn} flex-1`}
+                        >
+                          {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                          취소할게요
+                        </motion.button>
+                      </motion.div>
+                    </motion.div>
+                  ) : (
+                    <motion.button
+                      key="trigger"
+                      type="button"
+                      onClick={() => setConfirmingCancel(true)}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0, scale: 0.97 }}
+                      transition={{ duration: 0.12, ease: 'easeOut' }}
+                      className="w-full py-1 text-sm font-medium text-black/40 transition-colors hover:text-black/70"
+                    >
+                      성사 취소하기
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </section>
           )}
         </div>
@@ -411,44 +487,6 @@ export function MatchingDetailModal({
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               요청 취소
             </button>
-          </div>
-        ) : isMatched ? (
-          /* 성사됨: 최하단에 위계를 가장 낮춘 텍스트 버튼으로 '성사 취소하기'를 둔다.
-             되돌릴 수 없진 않지만 상대에게 알림이 가므로 인라인 확인을 거친다. */
-          <div className="shrink-0 border-t border-black/[0.06] px-6 py-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]">
-            {confirmingCancel ? (
-              <div className="space-y-3">
-                <p className="text-center text-sm leading-relaxed text-black/55">
-                  성사를 취소하면 상대에게 알림이 가고, 두 분 모두 다시 매칭할 수 있어요. 계속할까요?
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmingCancel(false)}
-                    className={`${ghostBtn} flex-1`}
-                  >
-                    닫기
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => onCancelMatch?.(matching.id)}
-                    className={`${ghostBtn} flex-1`}
-                  >
-                    {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-                    성사 취소하기
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirmingCancel(true)}
-                className="w-full py-1 text-sm font-medium text-black/40 transition-colors hover:text-black/70"
-              >
-                성사 취소하기
-              </button>
-            )}
           </div>
         ) : null}
       </motion.div>

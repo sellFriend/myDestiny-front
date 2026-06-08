@@ -150,6 +150,10 @@ export interface AcquaintanceDetail {
   /** 승인(PUBLISHED) 시각. 미승인 시 null */
   verifiedAt: string | null;
   photoUrls: string[];
+  /** 이 친구가 이미 매칭이 성사됨(MatchingStatus.MATCHED). 매칭 요청 보낼 친구 선택에서 제외한다. */
+  matched?: boolean;
+  /** 이 친구가 누군가에게 보낸 매칭 요청이 진행 중(PENDING). 매칭 요청 보낼 친구 선택에서 제외한다. */
+  hasOutgoingRequest?: boolean;
 }
 
 // ── Profile (DatingProfile) ───────────────────────────

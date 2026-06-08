@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
-import { motion, useAnimationControls, useDragControls, type PanInfo } from 'framer-motion';
+import {
+  AnimatePresence,
+  motion,
+  useAnimationControls,
+  useDragControls,
+  type PanInfo,
+} from 'framer-motion';
 import { Bell, BellOff, Check, HeartOff, Pencil, Trash2, X } from 'lucide-react';
 import { type Friend } from '@/pages/friends/components/FriendCard';
 
@@ -271,8 +277,8 @@ export function FriendDetailModal({
                 </p>
               )}
               {isMatched && (
-                <p className="rounded-2xl bg-black/[0.04] px-4 py-3 text-sm leading-relaxed text-black/55">
-                  다른 분과 인연이 성사돼 지금은 매칭에서 빠져 있어요. 성사를 취소하면 다시 소개를 받을 수 있어요.
+                <p className="break-keep rounded-2xl bg-black/[0.04] px-4 py-3 text-sm leading-relaxed text-black/55">
+                  다른 분과 인연이 성사돼 지금은 매칭에서 잠시 빠져 있어요. 성사를 취소하면 다시 소개를 받을 수 있어요.
                 </p>
               )}
 
@@ -319,43 +325,97 @@ export function FriendDetailModal({
                 </p>
               )}
 
-              {confirming ? (
-                /* 확인 단계 — 위계 최상단에 안내. 파괴 액션은 적색, 성사 취소는 중립 버튼으로 구분 */
+              {isMatched ? (
+                /* 성사됨: 같은 자리에서 '성사 취소하기' → '인연을 정리하는 순간' 카드로 (요청함 상세와 동일) */
+                <motion.div
+                  layout
+                  transition={{ layout: { type: 'spring', stiffness: 460, damping: 36 } }}
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    {confirming === 'cancelMatch' ? (
+                      <motion.div
+                        key="confirm"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+                        className="text-center"
+                      >
+                        {/* 끊어지는 인연을 코랄빛 하트로 — 작은 팝으로 감정의 무게를 얹는다 */}
+                        <motion.div
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ type: 'spring', stiffness: 520, damping: 20, delay: 0.05 }}
+                          className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-pastel-coral/15"
+                        >
+                          <HeartOff className="h-5 w-5 text-pastel-coral" />
+                        </motion.div>
+                        <p className="break-keep text-[15px] font-bold text-black">
+                          이 인연을 취소할까요?
+                        </p>
+                        <p className="mx-auto mt-1.5 max-w-[15rem] break-keep text-[13px] leading-relaxed text-black/50">
+                          상대에게도 소식이 전해져요. 마음이 바뀌면 언제든 다시 이어질 수 있어요.
+                        </p>
+                        <motion.div
+                          className="mt-4 flex gap-2"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.12, duration: 0.2, ease: 'easeOut' }}
+                        >
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => setConfirming(null)}
+                            className={`${ghostBtn} flex-1`}
+                          >
+                            그대로 둘게요
+                          </motion.button>
+                          <motion.button
+                            type="button"
+                            whileTap={{ scale: 0.97 }}
+                            onClick={handleConfirm}
+                            className={`${ghostBtn} flex-1`}
+                          >
+                            취소할게요
+                          </motion.button>
+                        </motion.div>
+                      </motion.div>
+                    ) : (
+                      <motion.button
+                        key="trigger"
+                        type="button"
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setConfirming('cancelMatch')}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0, scale: 0.98 }}
+                        transition={{ duration: 0.12, ease: 'easeOut' }}
+                        className={`${ghostBtn} w-full`}
+                      >
+                        <HeartOff className="h-4 w-4" />
+                        성사 취소하기
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ) : confirming ? (
+                /* 확인 단계 — 거절/삭제(적색 실행). 성사 취소는 위 매칭 분기에서 처리한다. */
                 <>
-                  <p className="text-center text-sm leading-relaxed text-black/60">
+                  <p className="break-keep text-center text-sm leading-relaxed text-black/60">
                     {confirming === 'reject'
                       ? '등록을 거절하면 이 친구의 폼이 삭제돼요. 계속할까요?'
-                      : confirming === 'delete'
-                        ? '친구를 삭제하면 되돌릴 수 없어요. 계속할까요?'
-                        : '성사를 취소하면 상대에게 알림이 가고, 두 분 모두 다시 매칭할 수 있어요. 계속할까요?'}
+                      : '친구를 삭제하면 되돌릴 수 없어요. 계속할까요?'}
                   </p>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => setConfirming(null)} className={ghostBtn}>
                       닫기
                     </button>
-                    {confirming === 'cancelMatch' ? (
-                      <button type="button" onClick={handleConfirm} className={primaryBtn}>
-                        <HeartOff className="h-4 w-4" />
-                        성사 취소하기
-                      </button>
-                    ) : (
-                      <button type="button" onClick={handleConfirm} className={dangerBtn}>
-                        <Trash2 className="h-4 w-4" />
-                        {confirming === 'reject' ? '거절하기' : '삭제하기'}
-                      </button>
-                    )}
+                    <button type="button" onClick={handleConfirm} className={dangerBtn}>
+                      <Trash2 className="h-4 w-4" />
+                      {confirming === 'reject' ? '거절하기' : '삭제하기'}
+                    </button>
                   </div>
                 </>
-              ) : isMatched ? (
-                /* 성사됨: 다른 액션 없이 '성사 취소하기' 단일 버튼만 (한 번 더 확인) */
-                <button
-                  type="button"
-                  onClick={() => setConfirming('cancelMatch')}
-                  className={`${ghostBtn} w-full`}
-                >
-                  <HeartOff className="h-4 w-4" />
-                  성사 취소하기
-                </button>
               ) : isPending ? (
                 /* 승인 대기: 등록됨 모달과 동일하게 상단 2버튼(행) + 하단 파괴 액션 레이아웃 */
                 <>
