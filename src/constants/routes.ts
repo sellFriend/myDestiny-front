@@ -10,4 +10,6 @@ export const ROUTES = {
   FORM: '/form',
   /** 매물(친구)로 등록된 사용자가 서비스 진입 시 강제 이동되는 안내 페이지 (cross-role-block-guide.md) */
   BLOCKED: '/blocked',
+  PRIVACY: '/legal/privacy',
+  TERMS: '/legal/terms',
 } as const;
