@@ -337,7 +337,11 @@ const FriendsPage = () => {
         return false;
       }
 
-      // 웹: 시트 없이 토스트로만 복사 완료를 알린다. (상세 모달은 인라인 흔적도 함께 노출)
+      // 웹: 시트 없이 토스트로만 복사 완료를 알린다.
+      // 복사에 성공하면 앱과 동일하게 상세 모달을 닫고, 실패하면 토스트의 링크를 직접 복사할 수 있게 모달을 연 채로 둔다.
+      if (copied) {
+        setSelectedFriend(null);
+      }
       showToast(
         copied
           ? `${friend.name}님께 보낼 수정 링크를 복사했어요. 붙여넣어 보내 주세요.`
