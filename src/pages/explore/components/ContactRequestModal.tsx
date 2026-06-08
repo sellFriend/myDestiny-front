@@ -20,7 +20,11 @@ interface ContactRequestModalProps {
 export function ContactRequestModal({ profile, onClose }: ContactRequestModalProps) {
   const { isLoggedIn } = useAuth();
   const { friends } = useFriends(isLoggedIn);
-  const registeredFriends = friends.filter((f) => f.status === 'approved');
+  // 매칭 요청은 한 사람에게만 걸 수 있어, 이미 성사됐거나(matched) 다른 요청을 보낸 중(hasOutgoingRequest)인
+  // 친구는 선택 목록에서 뺀다. (profiles-match-candidate-filter-frontend-guide §2)
+  const registeredFriends = friends.filter(
+    (f) => f.status === 'approved' && !f.isMatched && !f.hasOutgoingRequest,
+  );
 
   const [selectedFriendId, setSelectedFriendId] = useState('');
   const [message, setMessage] = useState('');
