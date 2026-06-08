@@ -35,10 +35,20 @@ async function fetchInviteLink(): Promise<string> {
   return formUrl;
 }
 
+/** 용도별 안내 문구(body)와 숏링크를 한 덩어리로 합친다. 클립보드·SMS 모두 같은 형식을 쓴다. */
+function composeShareText(body: string, link: string) {
+  return `${body}\n${link}`;
+}
+
 function createSmsUrl(inviteLink: string, body: string) {
-  const encodedBody = encodeURIComponent(`${body}\n${inviteLink}`);
+  const encodedBody = encodeURIComponent(composeShareText(body, inviteLink));
   const separator = /iPad|iPhone|iPod/i.test(navigator.userAgent) ? '&' : '?';
   return `sms:${separator}body=${encodedBody}`;
+}
+
+/** 공유 맥락(초대/수정 요청)에 맞는 안내 문구를 고른다. */
+function smsBodyFor(mode: ShareMode) {
+  return mode === 'reform' ? REFORM_SMS_BODY : INVITE_SMS_BODY;
 }
 
 async function writeClipboard(text: string): Promise<boolean> {
@@ -114,8 +124,8 @@ const FriendsPage = () => {
     setInviteLink(link);
     setShareMode('invite');
 
-    // 웹/앱 모두 클립보드에 먼저 복사한다.
-    const copied = await writeClipboard(link);
+    // 웹/앱 모두 클립보드에 먼저 복사한다. 숏링크와 함께 초대 안내 문구도 같이 복사한다.
+    const copied = await writeClipboard(composeShareText(INVITE_SMS_BODY, link));
     setIsLinkCopied(copied);
 
     if (isAppViewport()) {
@@ -153,7 +163,7 @@ const FriendsPage = () => {
       return;
     }
 
-    const copied = await writeClipboard(inviteLink);
+    const copied = await writeClipboard(composeShareText(smsBodyFor(shareMode), inviteLink));
     setIsLinkCopied(copied);
 
     if (copied) {
@@ -161,7 +171,7 @@ const FriendsPage = () => {
     } else {
       showToast(`링크를 직접 복사해 주세요: ${inviteLink}`, 5000);
     }
-  }, [inviteLink, showToast]);
+  }, [inviteLink, shareMode, showToast]);
 
   const shareWithSystemSheet = useCallback(async (fallbackMessage?: string) => {
     if (!inviteLink) {
@@ -170,7 +180,7 @@ const FriendsPage = () => {
 
     const shareData = {
       title: shareMode === 'reform' ? REFORM_TITLE : INVITE_TITLE,
-      text: shareMode === 'reform' ? REFORM_SMS_BODY : INVITE_SMS_BODY,
+      text: smsBodyFor(shareMode),
       url: inviteLink,
     };
 
@@ -205,8 +215,7 @@ const FriendsPage = () => {
       return;
     }
 
-    const body = shareMode === 'reform' ? REFORM_SMS_BODY : INVITE_SMS_BODY;
-    window.location.href = createSmsUrl(inviteLink, body);
+    window.location.href = createSmsUrl(inviteLink, smsBodyFor(shareMode));
   }, [copyInviteLink, inviteLink, shareMode]);
 
   const handleDelete = (id: string) => {
@@ -324,7 +333,8 @@ const FriendsPage = () => {
         return false;
       }
       setInviteLink(link);
-      const copied = await writeClipboard(link);
+      // 숏링크와 함께 수정 요청 안내 문구도 같이 복사한다.
+      const copied = await writeClipboard(composeShareText(REFORM_SMS_BODY, link));
       setIsLinkCopied(copied);
 
       if (isAppViewport()) {
@@ -337,7 +347,11 @@ const FriendsPage = () => {
         return false;
       }
 
-      // 웹: 시트 없이 토스트로만 복사 완료를 알린다. (상세 모달은 인라인 흔적도 함께 노출)
+      // 웹: 시트 없이 토스트로만 복사 완료를 알린다.
+      // 복사에 성공하면 앱과 동일하게 상세 모달을 닫고, 실패하면 토스트의 링크를 직접 복사할 수 있게 모달을 연 채로 둔다.
+      if (copied) {
+        setSelectedFriend(null);
+      }
       showToast(
         copied
           ? `${friend.name}님께 보낼 수정 링크를 복사했어요. 붙여넣어 보내 주세요.`
