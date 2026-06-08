@@ -14,6 +14,12 @@ import { useFriends } from '@/pages/friends/hooks/useFriends';
 const INVITE_TITLE = '주선자 친구 초대';
 const INVITE_TEXT = '링크를 눌러 내 친구로 연결해줘요.';
 
+const INVITE_SMS_BODY =
+  '친구가 당신을 좋은 사람에게 소개하고 싶어해요.\n간단한 자기소개만 작성해 주세요.\n\n작성한 내용은 주선자가 먼저 확인하고,\n소개가 확정되기 전까지 연락처는 공개되지 않아요.';
+
+const REFORM_SMS_BODY =
+  '더 잘 어울리는 사람을 만날 수 있도록\n자기소개를 한 번 더 확인해 주세요.\n\n작성한 내용은 주선자가 먼저 확인하고,\n소개가 확정되기 전까지 연락처는 공개되지 않아요.';
+
 type FriendTab = 'registered' | 'pending';
 const FRIEND_TABS: { key: FriendTab; label: string }[] = [
   { key: 'registered', label: '등록된 친구' },
@@ -26,10 +32,10 @@ async function fetchInviteLink(): Promise<string> {
   return formUrl;
 }
 
-function createSmsUrl(inviteLink: string) {
-  const body = encodeURIComponent(`${INVITE_TITLE}\n${INVITE_TEXT}\n${inviteLink}`);
+function createSmsUrl(inviteLink: string, body: string) {
+  const encodedBody = encodeURIComponent(`${body}\n${inviteLink}`);
   const separator = /iPad|iPhone|iPod/i.test(navigator.userAgent) ? '&' : '?';
-  return `sms:${separator}body=${body}`;
+  return `sms:${separator}body=${encodedBody}`;
 }
 
 async function writeClipboard(text: string): Promise<boolean> {
@@ -191,7 +197,7 @@ const FriendsPage = () => {
       return;
     }
 
-    window.location.href = createSmsUrl(inviteLink);
+    window.location.href = createSmsUrl(inviteLink, INVITE_SMS_BODY);
   }, [copyInviteLink, inviteLink]);
 
   const handleDelete = (id: string) => {
@@ -293,6 +299,12 @@ const FriendsPage = () => {
         return false;
       }
       const copied = await writeClipboard(link);
+
+      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        window.location.href = createSmsUrl(link, REFORM_SMS_BODY);
+        return true;
+      }
+
       showToast(
         copied
           ? `${friend.name}님께 보낼 수정 링크를 복사했어요. 붙여넣어 보내 주세요.`
